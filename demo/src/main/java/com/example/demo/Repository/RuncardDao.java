@@ -12,7 +12,7 @@ public class RuncardDao {
         // 模擬資料，假設兩張 Runcard
         return List.of(
                 new Runcard("runcard1", "tool1", "2025-01-01", "approver1"),
-                new Runcard("runcard2", "tool3", "2025-01-02", "approver2")
+                new Runcard("runcard2", "tool2", "2025-01-02", "approver2")
         );
     }
 }
