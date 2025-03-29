@@ -37,6 +37,7 @@ public class RunCardParserService {
 
             //  若沒有 mapping 到任何 group -> 也要產生一筆記錄，表示該 condition 沒有對應到 group
             if (groupRulesMap == null || groupRulesMap.isEmpty()) {
+                log.info("[RunCardParserService.validateMappingRules] condition : {} has no group mapping", oneConditionToolRuleMappingInfo.getCondition());
                 ResultInfo noGroupInfo = new ResultInfo();
                 noGroupInfo.setRuleType("no-group");
                 noGroupInfo.setResult(0); // 0 代表沒有對應
@@ -44,6 +45,7 @@ public class RunCardParserService {
                 detailMap.put("msg", "No group matched for this condition");
                 noGroupInfo.setDetail(detailMap);
                 oneConditionAllResultInfos.add(noGroupInfo);
+                continue;
             } else {
                 // 若有 group => 逐一 group 去做 validateRule
                 for (Map.Entry<String, List<Rule>> entry : groupRulesMap.entrySet()) {
