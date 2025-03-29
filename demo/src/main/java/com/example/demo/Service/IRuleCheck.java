@@ -8,9 +8,9 @@ import org.springframework.stereotype.Component;
 @Component
 public interface IRuleCheck {
     /**
-     * @param runcardRawInfoId  目前這個 runcard 的 id
-     * @param rule       要檢查的規則
-     * @return           回傳包含燈號 & 詳細訊息的檢查結果
+     * @return 回傳包含燈號 & 詳細訊息的檢查結果
+     * TODO detail 裡需要包含 <result ,(1 or 2 or 3)>
+     * TODO 每個 check 都需要先做 lot type filter
      */
     ResultInfo check(RuncardRawInfo runcardRawInfoId, Rule rule);
 }

@@ -17,13 +17,12 @@ public class DefaultRuleValidator implements IRuleValidator {
     private final RuleCheckFactory ruleCheckFactory;
 
     /**
-     * 逐一將每個 rule 用 RuleCheckFactory 取得對應 checker 來執行檢查
-     * 並回傳多筆 ResultInfo
+     * 逐一將每個 group 所 mapping 到的 rule 用 RuleCheckFactory 取得對應 checker 來執行檢查
      */
     @Override
     public List<ResultInfo> validateRule(RuncardRawInfo runcardRawInfo, List<Rule> rules) {
         if (rules == null || rules.isEmpty()) {
-            log.error("[DefaultRuleValidator.validateRule] Runcard ID={} has no rules to validate",
+            log.error("[DefaultRuleValidator.validateRule] Runcard ID : {} has no rules to validate",
                     (runcardRawInfo != null ? runcardRawInfo.getRuncardId() : "UNKNOWN"));
             return Collections.emptyList();
         }
@@ -32,15 +31,13 @@ public class DefaultRuleValidator implements IRuleValidator {
         for (Rule rule : rules) {
             try {
                 IRuleCheck checker = ruleCheckFactory.getRuleCheck(rule.getRuleType());
-                // checker.check => 依照 rule & runcardRawInfo 執行檢查邏輯
                 ResultInfo info = checker.check(runcardRawInfo, rule);
                 results.add(info);
-
             } catch (Exception ex) {
                 // 如果該 rule 找不到對應的 checker 或執行出錯 => 做個紅燈
                 ResultInfo errorInfo = new ResultInfo();
                 errorInfo.setRuleType(rule.getRuleType());
-                errorInfo.setResult(3); // 紅燈
+                errorInfo.setResult(3);
                 errorInfo.setDetail(Collections.singletonMap("error", ex.getMessage()));
                 results.add(errorInfo);
             }
@@ -76,19 +73,17 @@ public class DefaultRuleValidator implements IRuleValidator {
             List<ResultInfo> infosOfSameRule = entry.getValue();
 
             // 取最大燈號
-            // (6) 若全 null 就預設 3(紅燈)，並印 log.error
+            // 若全 null 就預設 3(紅燈)，並印 log.error
             Integer maxResult = infosOfSameRule.stream()
                     .map(ResultInfo::getResult)
                     .filter(Objects::nonNull)
                     .max(Integer::compareTo)
                     .orElseGet(() -> {
-                        log.error("[parseResult] All results are null for ruleType={}. Defaulting to 3 (red)", ruleType);
+                        log.error("[DefaultRuleValidator.parseResult] All results are null for ruleType={}. Defaulting to 3 (red)", ruleType);
                         return 3;
                     });
 
-            // 3. 合併 detail:
             //    - 記錄有哪些 group => "repeatedGroups": [groupA, groupB, ...]
-            //    - 也可把各 Info 的 detail 其他欄位合併
             Set<String> groupNames = new HashSet<>();
             Map<String, Object> mergedDetail = new HashMap<>();
 
@@ -111,9 +106,9 @@ public class DefaultRuleValidator implements IRuleValidator {
                         if ("group".equals(dKey)) {
                             continue;
                         }
-                        // 讓 key 看起來像: "groupA:someKey"
+                        // 讓 key 看起來像: "groupA_someKey"
                         String finalKey = (groupStr != null)
-                                ? (groupStr + ":" + dKey)
+                                ? (groupStr + "_" + dKey)
                                 : dKey;
 
                         mergedDetail.put(finalKey, me.getValue());

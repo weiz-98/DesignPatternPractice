@@ -6,6 +6,7 @@ import com.example.demo.vo.RuncardRawInfo;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
+
 @Component
 public class RuleBCheck implements IRuleCheck {
 

@@ -13,12 +13,11 @@ import java.util.*;
 public class RuncardHandlerService {
 
     /**
-     * 建立一個 RuncardConditionMappingInfo，代表該 runcard 下的多個 condition。
+     * 建立一個 RuncardMappingInfo，代表該 runcard 下的多個 condition mapping 的結果 (包含 tool#chamber 以及 group & rules)。
      */
-    public RuncardMappingInfo buildConditionMappingInfo(RuncardRawInfo runcardRawInfo, List<RecipeAndToolInfo> recipeInfos, List<ToolRuleGroup> toolRuleGroups) {
+    public RuncardMappingInfo buildRuncardMappingInfo(RuncardRawInfo runcardRawInfo, List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos, List<ToolRuleGroup> toolRuleGroups) {
 
-
-        RuncardMappingInfo checkResult = checkBasicParams(runcardRawInfo, toolRuleGroups, recipeInfos);
+        RuncardMappingInfo checkResult = checkBasicParams(runcardRawInfo, toolRuleGroups, oneRuncardRecipeAndToolInfos);
         if (checkResult != null) {
             return checkResult;
         }
@@ -26,34 +25,30 @@ public class RuncardHandlerService {
         RuncardMappingInfo mappingInfo = new RuncardMappingInfo();
         mappingInfo.setRuncardRawInfo(runcardRawInfo);
 
-        List<ToolRuleMappingInfo> conditionList = new ArrayList<>();
+        List<OneConditionToolRuleMappingInfo> conditionList = new ArrayList<>();
 
-        // 每個 RecipeAndToolInfo 視為一個 "condition"
-        for (RecipeAndToolInfo recipeInfo : recipeInfos) {
-            // 1. 拆解 toolList
-            List<String> toolList = ParsingUtil.splitToolList(recipeInfo.getToolIdList());
+        for (OneConditionRecipeAndToolInfo oneConditionRecipeAndToolInfo : oneRuncardRecipeAndToolInfos) {
+            // 解析 toolList
+            List<String> toolList = ParsingUtil.splitToolList(oneConditionRecipeAndToolInfo.getToolIdList());
+            // 解析 recipeId => 產生多個 tool#chamber
+            List<String> toolChambers = ParsingUtil.parsingChamber(toolList, oneConditionRecipeAndToolInfo.getRecipeId());
+            log.info("RuncardID : {}, condition : {} , toolChambers: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), toolChambers);
 
-            // 2. 解析 recipeId => 產生多個 tool#chamber
-            List<String> toolChambers = ParsingUtil.parsingChamber(toolList, recipeInfo.getRecipeId());
-            log.info("RuncardID : {}, condition : {} , toolChambers: {}", runcardRawInfo.getRuncardId(), recipeInfo.getConditions(), toolChambers);
-
-            // 3. 對這些 tool#chamber 進行 mapping
-            // 同個 condition 下可能會 mapping 到多個 group，因此將 toolRuleGroup name 當作 Map 的 key，而 value 則是該 toolRuleGroup 所設定的 rule 列表
+            // 對這些 tool#chamber 進行 mapping
+            // 同個 condition 下可能會 mapping 到多個 group 因此使用 Map
             Map<String, List<Rule>> groupRulesMap = mappingRules(toolChambers, toolRuleGroups);
-            log.info("RuncardID : {}, condition : {} , groupRulesMap: {}", runcardRawInfo.getRuncardId(), recipeInfo.getConditions(), groupRulesMap);
+            log.info("RuncardID : {}, condition : {} , groupRulesMap: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), groupRulesMap);
 
-            // 4. 組成新的 ToolRuleMappingInfo (帶 groupRulesMap)
-            ToolRuleMappingInfo conditionInfo = new ToolRuleMappingInfo();
+            OneConditionToolRuleMappingInfo oneConditionToolRuleMappingInfo = new OneConditionToolRuleMappingInfo();
+            // 不同 ToolChambers 可能來自不同資料，例如 condition 的 ToolChambers 可能從 Runcard 本身的 condition 或是從 multiple recipe 來的 ToolChambers
+            oneConditionToolRuleMappingInfo.setCondition(oneConditionRecipeAndToolInfo.getCondition());
+            oneConditionToolRuleMappingInfo.setToolChambers(toolChambers);
+            oneConditionToolRuleMappingInfo.setGroupRulesMap(groupRulesMap);
 
-            // 不同 ToolChambers 可能來自不同資料，例如 condition 的 ToolChambers 可能從 Runcard 本身的 condition 或是從 multiple recipe 來的 ToolChambers，所以會做成 Map
-            conditionInfo.setCondition(recipeInfo.getConditions());
-            conditionInfo.setToolChambers(toolChambers);
-            conditionInfo.setGroupRulesMap(groupRulesMap);
-
-            conditionList.add(conditionInfo);
+            conditionList.add(oneConditionToolRuleMappingInfo);
         }
 
-        mappingInfo.setConditionToolRuleMappingInfos(conditionList);
+        mappingInfo.setOneConditionToolRuleMappingInfos(conditionList);
         return mappingInfo;
     }
 
@@ -85,7 +80,6 @@ public class RuncardHandlerService {
 
             if (groupMatched) {
                 // 代表這個 group 裡面有至少一個 tool#chamber 與當前 condition 相符
-                // => 把 group.getRules() 放進 resultMap
                 if (group.getGroupName() != null && group.getRules() != null) {
                     resultMap.put(group.getGroupName(), group.getRules());
                 }
@@ -98,26 +92,22 @@ public class RuncardHandlerService {
     private RuncardMappingInfo checkBasicParams(
             RuncardRawInfo runcardRawInfo,
             List<ToolRuleGroup> toolRuleGroups,
-            List<RecipeAndToolInfo> recipeInfos
+            List<OneConditionRecipeAndToolInfo> recipeInfos
     ) {
         if (runcardRawInfo == null) {
-            log.error("[buildConditionMappingInfo] RuncardRawInfo is null, unable to proceed");
-            // 直接回傳空物件，可視需求改為 throw Exception
+            log.error("[RuncardHandlerService.buildRuncardMappingInfo] RuncardRawInfo is null, unable to proceed");
             return new RuncardMappingInfo(null, Collections.emptyList());
         }
 
         if (toolRuleGroups == null || toolRuleGroups.isEmpty()) {
-            log.error("[buildConditionMappingInfo] ToolGroups is null or empty, no rule mapping possible");
-            // 此時至少把 RuncardRawInfo 帶回
+            log.error("[RuncardHandlerService.buildRuncardMappingInfo] ToolGroups is null or empty, no rule mapping possible");
             return new RuncardMappingInfo(runcardRawInfo, Collections.emptyList());
         }
 
         if (recipeInfos == null || recipeInfos.isEmpty()) {
-            log.error("[buildConditionMappingInfo] RecipeAndToolInfo is null or empty, no condition to process");
+            log.error("[RuncardHandlerService.buildRuncardMappingInfo] RecipeAndToolInfo is null or empty, no condition to process");
             return new RuncardMappingInfo(runcardRawInfo, Collections.emptyList());
         }
-
-        // 表示所有參數皆可用 => 回傳 null 表示無需中斷
         return null;
     }
 

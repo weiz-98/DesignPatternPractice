@@ -10,9 +10,9 @@ import java.util.Map;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ToolRuleMappingInfo {
+public class OneConditionToolRuleMappingInfo {
     private String condition;
     private List<String> toolChambers;
-    private Map<String, List<Rule>> groupRulesMap;     // map<groupName, List<Rule>>
+    private Map<String, List<Rule>> groupRulesMap; // <groupName, List<Rule>>
 }
 

@@ -1,7 +1,7 @@
 package com.example.demo.Service;
 
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ModuleInfo;
-import com.example.demo.vo.RecipeAndToolInfo;
 import com.example.demo.vo.RuncardRawInfo;
 import com.example.demo.vo.ToolRuleGroup;
 import lombok.extern.slf4j.Slf4j;
@@ -119,16 +119,16 @@ public class DataLoaderService {
      * 4. 根據 runcardId 取得對應的 RecipeAndToolInfo
      * 回傳 Optional<List<RecipeAndToolInfo>>
      */
-    public List<RecipeAndToolInfo> getRecipeAndToolInfo(String runcardId) {
+    public List<OneConditionRecipeAndToolInfo> getRecipeAndToolInfo(String runcardId) {
         // 這裡也只做 Mock
         if (runcardId == null || runcardId.isEmpty()) {
             return Collections.emptyList();
         }
 
-        List<RecipeAndToolInfo> mockList = new ArrayList<>();
+        List<OneConditionRecipeAndToolInfo> mockList = new ArrayList<>();
         // Demo: 固定填一些示例
-        RecipeAndToolInfo info1 = new RecipeAndToolInfo("condition1", "RG-2025", "JDTM16,JDTM17,JDTM20", "xxx.xx-xxxx.xxxx-{cEF}{c134}");
-        RecipeAndToolInfo info2 = new RecipeAndToolInfo("condition2", "RG-2026", "JDTM100", "yyy.yy-yyyy.yyyy-{c{2;3}}");
+        OneConditionRecipeAndToolInfo info1 = new OneConditionRecipeAndToolInfo("condition1", "JDTM16,JDTM17,JDTM20", "xxx.xx-xxxx.xxxx-{cEF}{c134}");
+        OneConditionRecipeAndToolInfo info2 = new OneConditionRecipeAndToolInfo("condition2", "RG-2026", "yyy.yy-yyyy.yyyy-{c{2;3}}");
         mockList.add(info1);
         mockList.add(info2);
 

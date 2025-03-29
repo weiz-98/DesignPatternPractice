@@ -10,7 +10,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RuncardMappingInfo {
-    private RuncardRawInfo runcardRawInfo;                  // 對應 原始 runcard data
-    private List<ToolRuleMappingInfo> conditionToolRuleMappingInfos;  // 對應多個 condition
+    private RuncardRawInfo runcardRawInfo; // runcard raw data
+    private List<OneConditionToolRuleMappingInfo> oneConditionToolRuleMappingInfos; // 對應多個 condition
 }
 

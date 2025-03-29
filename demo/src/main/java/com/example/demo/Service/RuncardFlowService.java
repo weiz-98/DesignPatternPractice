@@ -21,9 +21,8 @@ public class RuncardFlowService {
     private final LocalDateTime endTime = startTime.minusWeeks(2);
 
     public void process() {
-        log.info("[RuncardFlowService.process] Starting cron job at: {}", LocalDateTime.now());
+        log.info("[RuncardFlowService] Starting cron job at : {}", LocalDateTime.now());
 
-        // 從 dataLoaderService 拿到所有的 module
         List<ModuleInfo> moduleInfoList = dataLoaderService.getModules();
         log.info("Found {} modules to process.", moduleInfoList.size());
 
@@ -31,41 +30,41 @@ public class RuncardFlowService {
     }
 
     private void processModule(ModuleInfo moduleInfo) {
-        log.info("[processModule] Processing module: {}, sections: {}", moduleInfo.getModule(), moduleInfo.getSectionIds());
+        log.info("[RuncardFlowService.processModule] Processing module : {}, sections : {}", moduleInfo.getModule(), moduleInfo.getSectionIds());
         List<String> sectionIds = moduleInfo.getSectionIds();
 
         List<ToolRuleGroup> toolRuleGroups = dataLoaderService.getToolRuleGroups(sectionIds);
-        log.info("Retrieved {} ToolRuleGroups for module: {}", toolRuleGroups.size(), moduleInfo.getModule());
+        log.info("Retrieved {} ToolRuleGroups for module : {}", toolRuleGroups.size(), moduleInfo.getModule());
 
         List<RuncardRawInfo> runcardRawInfos = dataLoaderService.getMockRUncardRawInfoList(sectionIds, startTime, endTime);
-        log.info("Retrieved {} RuncardRawInfos for module: {}", runcardRawInfos.size(), moduleInfo.getModule());
+        log.info("Retrieved {} Runcard Raw Data for module : {}", runcardRawInfos.size(), moduleInfo.getModule());
 
-        // 建立該 module 下所有 Runcard 的 ConditionMappingInfos
-        List<RuncardMappingInfo> runcardMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups);
+        // 建立該 module 下所有 Runcard mapping 到的所有 rules
+        List<RuncardMappingInfo> oneModuleMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups);
 
-        processMappingInfos(runcardMappingInfos);
+        processMappingInfos(oneModuleMappingInfos);
     }
 
     private List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
-        List<RuncardMappingInfo> moduleConditionMappingInfos = new ArrayList<>();
+        List<RuncardMappingInfo> oneModuleMappingInfos = new ArrayList<>();
         for (RuncardRawInfo runcardRawInfo : runcardRawInfos) {
-            List<RecipeAndToolInfo> recipeAndToolInfos = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId());
-            // 取得每一張 runcard 下每個 condition 所對應的 rule 資訊
-            RuncardMappingInfo conditionMappingInfo = runcardHandlerService.buildConditionMappingInfo(runcardRawInfo, recipeAndToolInfos, toolRuleGroups);
-            moduleConditionMappingInfos.add(conditionMappingInfo);
+            List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId());
+
+            RuncardMappingInfo oneRuncardConditionMappingInfo = runcardHandlerService.buildRuncardMappingInfo(runcardRawInfo, oneRuncardRecipeAndToolInfos, toolRuleGroups);
+            oneModuleMappingInfos.add(oneRuncardConditionMappingInfo);
         }
-        return moduleConditionMappingInfos;
+        return oneModuleMappingInfos;
     }
 
 
-    private void processMappingInfos(List<RuncardMappingInfo> runcardMappingInfos) {
+    private void processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos) {
         // 將每一張 runcard 的 runcardMappingInfo 根據不同的 rule 去做驗證
-        runcardMappingInfos.forEach(runcardMappingInfo -> {
-            List<ToolRuleGroupResult> ruleResults = runCardParserService.validateMappingRules(runcardMappingInfo);
+        oneModuleMappingInfos.forEach(oneRuncardMappingInfo -> {
+            List<OneConditionToolRuleGroupResult> oneRuncardRuleResults = runCardParserService.validateMappingRules(oneRuncardMappingInfo);
 
-            RuncardRawInfo rawInfo = runcardMappingInfo.getRuncardRawInfo();
-            log.info("[processMappingInfos] RuncardID={} validated. Result size={} ",
-                    rawInfo.getRuncardId(), ruleResults.size());
+            RuncardRawInfo runcardRawInfo = oneRuncardMappingInfo.getRuncardRawInfo();
+            log.info("[processMappingInfos] RuncardID : {} validated. Result size : {} ",
+                    runcardRawInfo.getRuncardId(), oneRuncardRuleResults.size());
         });
     }
 }
