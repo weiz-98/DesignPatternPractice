@@ -1,25 +1,32 @@
 package com.example.demo.Service;
 
+import org.springframework.stereotype.Service;
+
 import java.util.HashMap;
 import java.util.Map;
 
+@Service
 public class RuleCheckFactory {
 
-    private final Map<String, IRuleCheck> ruleCheckMap;
+    // 可用來存放各種 ruleCheck 的實例
+    private final Map<String, IRuleCheck> ruleCheckMap = new HashMap<>();
 
+    // 建構子 or Init 進行註冊
     public RuleCheckFactory() {
-        this.ruleCheckMap = new HashMap<>();
-        this.ruleCheckMap.put("ruleA", new RuleA());
-        this.ruleCheckMap.put("ruleB", new RuleB());
+        // 假設先放兩個 ruleCheck
+        ruleCheckMap.put("ruleA", new RuleACheck());
+        ruleCheckMap.put("ruleB", new RuleBCheck());
+        // ...可繼續加...
     }
 
-    public IRuleCheck getRuleCheck(String ruleName) {
-        IRuleCheck ruleCheck = ruleCheckMap.get(ruleName);
-        if (ruleCheck == null) {
-            throw new IllegalArgumentException("No RuleCheck found for rule: " + ruleName);
+    public IRuleCheck getRuleCheck(String ruleType) {
+        if (ruleCheckMap.containsKey(ruleType)) {
+            return ruleCheckMap.get(ruleType);
         }
-        return ruleCheck;
+        // 沒找到就丟出例外或回傳預設
+        throw new IllegalArgumentException("No RuleCheck found for ruleType: " + ruleType);
     }
 }
+
 
 
