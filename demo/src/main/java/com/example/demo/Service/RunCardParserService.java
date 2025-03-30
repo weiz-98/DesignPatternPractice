@@ -88,7 +88,7 @@ public class RunCardParserService {
             allConditionsResultList.add(oneConditionResult);
         }
 
-        log.info("[RunCardParserService.validateMappingRules] RuncardID : {}, totalConditions : {}, finalResultCount : {}",
+        log.info("RuncardID: {} TotalConditions: {} FinalResultCount: {}",
                 runcardRawInfo.getRuncardId(),
                 runcardMappingInfo.getOneConditionToolRuleMappingInfos().size(),
                 allConditionsResultList.size());

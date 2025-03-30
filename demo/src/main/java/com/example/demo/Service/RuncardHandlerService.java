@@ -32,12 +32,12 @@ public class RuncardHandlerService {
             List<String> toolList = ParsingUtil.splitToolList(oneConditionRecipeAndToolInfo.getToolIdList());
             // 解析 recipeId => 產生多個 tool#chamber
             List<String> toolChambers = ParsingUtil.parsingChamber(toolList, oneConditionRecipeAndToolInfo.getRecipeId());
-            log.info("RuncardID : {}, condition : {} , toolChambers: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), toolChambers);
+            log.info("RuncardID: {} Condition: {} ToolChambers: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), toolChambers);
 
             // 對這些 tool#chamber 進行 mapping
             // 同個 condition 下可能會 mapping 到多個 group 因此使用 Map
             Map<String, List<Rule>> groupRulesMap = mappingRules(toolChambers, toolRuleGroups);
-            log.info("RuncardID : {}, condition : {} , groupRulesMap: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), groupRulesMap);
+            log.info("RuncardID: {} Condition: {} GroupRulesMap: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), groupRulesMap);
 
             OneConditionToolRuleMappingInfo oneConditionToolRuleMappingInfo = new OneConditionToolRuleMappingInfo();
             // 不同 ToolChambers 可能來自不同資料，例如 condition 的 ToolChambers 可能從 Runcard 本身的 condition 或是從 multiple recipe 來的 ToolChambers

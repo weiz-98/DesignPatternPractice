@@ -22,7 +22,7 @@ public class DefaultRuleValidator implements IRuleValidator {
     @Override
     public List<ResultInfo> validateRule(RuncardRawInfo runcardRawInfo, List<Rule> rules) {
         if (rules == null || rules.isEmpty()) {
-            log.error("[DefaultRuleValidator.validateRule] Runcard ID : {} has no rules to validate",
+            log.error("Runcard ID : {} has no rules to validate",
                     (runcardRawInfo != null ? runcardRawInfo.getRuncardId() : "UNKNOWN"));
             return Collections.emptyList();
         }
@@ -79,7 +79,7 @@ public class DefaultRuleValidator implements IRuleValidator {
                     .filter(Objects::nonNull)
                     .max(Integer::compareTo)
                     .orElseGet(() -> {
-                        log.error("[DefaultRuleValidator.parseResult] All results are null for ruleType={}. Defaulting to 3 (red)", ruleType);
+                        log.error("All results are null for ruleType={}. Defaulting to 3 (red)", ruleType);
                         return 3;
                     });
 
@@ -147,7 +147,7 @@ public class DefaultRuleValidator implements IRuleValidator {
                 }
             }
         }
-        log.info("RuncardID: {}, Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}",
+        log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}",
                 runcardId, condition, ruleType, groupNames, infosOfSameRule, maxResult);
     }
 }

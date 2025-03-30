@@ -21,7 +21,7 @@ public class RuncardFlowService {
     private final LocalDateTime endTime = startTime.minusWeeks(2);
 
     public void process() {
-        log.info("[RuncardFlowService] Starting cron job at : {}", LocalDateTime.now());
+        log.info("Starting cron job at :{}", LocalDateTime.now());
 
         List<ModuleInfo> moduleInfoList = dataLoaderService.getModules();
         log.info("Found {} modules to process.", moduleInfoList.size());
@@ -30,14 +30,14 @@ public class RuncardFlowService {
     }
 
     public void processModule(ModuleInfo moduleInfo) {
-        log.info("[RuncardFlowService.processModule] Processing module : {}, sections : {}", moduleInfo.getModule(), moduleInfo.getSectionIds());
+        log.info("Processing module: {}, sections: {}", moduleInfo.getModule(), moduleInfo.getSectionIds());
         List<String> sectionIds = moduleInfo.getSectionIds();
 
         List<ToolRuleGroup> toolRuleGroups = dataLoaderService.getToolRuleGroups(sectionIds);
-        log.info("Retrieved {} ToolRuleGroups for module : {}", toolRuleGroups.size(), moduleInfo.getModule());
+        log.info("Retrieved {} ToolRuleGroups for module: {}", toolRuleGroups.size(), moduleInfo.getModule());
 
         List<RuncardRawInfo> runcardRawInfos = dataLoaderService.getMockRUncardRawInfoList(sectionIds, startTime, endTime);
-        log.info("Retrieved {} Runcard Raw Data for module : {}", runcardRawInfos.size(), moduleInfo.getModule());
+        log.info("Retrieved {} Runcard Raw Data for module: {}", runcardRawInfos.size(), moduleInfo.getModule());
 
         // 建立該 module 下所有 Runcard mapping 到的所有 rules
         List<RuncardMappingInfo> oneModuleMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups);
@@ -63,7 +63,7 @@ public class RuncardFlowService {
             List<OneConditionToolRuleGroupResult> oneRuncardRuleResults = runCardParserService.validateMappingRules(oneRuncardMappingInfo);
 
             RuncardRawInfo runcardRawInfo = oneRuncardMappingInfo.getRuncardRawInfo();
-            log.info("[processMappingInfos] RuncardID : {} validated. Result size : {} ",
+            log.info("RuncardID: {} validation completed. Result size : {} ",
                     runcardRawInfo.getRuncardId(), oneRuncardRuleResults.size());
         });
     }
