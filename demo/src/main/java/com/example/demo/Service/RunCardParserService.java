@@ -45,7 +45,6 @@ public class RunCardParserService {
                 detailMap.put("msg", "No group matched for this condition");
                 noGroupInfo.setDetail(detailMap);
                 oneConditionAllResultInfos.add(noGroupInfo);
-                continue;
             } else {
                 // 若有 group => 逐一 group 去做 validateRule
                 for (Map.Entry<String, List<Rule>> entry : groupRulesMap.entrySet()) {
@@ -56,7 +55,7 @@ public class RunCardParserService {
                     List<ResultInfo> partialResults = ruleValidator.validateRule(runcardRawInfo, rules);
 
                     // 在 parseResult 階段會把這些 groupName 合併成 "repeatedGroups",
-                    // 並在 detail 裡分別以 "GroupA:xxx", "GroupB:xxx" 形式呈現
+                    // 並在 detail 裡分別以 "GroupA_xxx", "GroupB_xxx" 形式呈現
                     partialResults.forEach(res -> {
                         Map<String, Object> detailMap = (res.getDetail() != null)
                                 ? new HashMap<>(res.getDetail())
