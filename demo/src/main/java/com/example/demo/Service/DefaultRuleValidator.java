@@ -119,7 +119,7 @@ public class DefaultRuleValidator implements IRuleValidator {
             if (!groupNames.isEmpty()) {
                 mergedDetail.put("repeatedGroups", new ArrayList<>(groupNames));
             }
-
+            logConsolidationDetails(infosOfSameRule, ruleType, groupNames, maxResult);
             // 4. 建立合併後的 ResultInfo
             ResultInfo finalRi = new ResultInfo();
             finalRi.setRuleType(ruleType);
@@ -130,6 +130,25 @@ public class DefaultRuleValidator implements IRuleValidator {
         }
 
         return consolidatedList;
+    }
+
+    private void logConsolidationDetails(List<ResultInfo> infosOfSameRule, String ruleType, Set<String> groupNames, int maxResult) {
+        // 嘗試從第一筆 detail 取得 runcardId 與 condition（如果有）
+        String runcardId = "UNKNOWN";
+        String condition = "UNKNOWN";
+        if (!infosOfSameRule.isEmpty()) {
+            Map<String, Object> d = infosOfSameRule.get(0).getDetail();
+            if (d != null) {
+                if (d.containsKey("runcardId")) {
+                    runcardId = d.get("runcardId").toString();
+                }
+                if (d.containsKey("condition")) {
+                    condition = d.get("condition").toString();
+                }
+            }
+        }
+        log.info("RuncardID: {}, Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}",
+                runcardId, condition, ruleType, groupNames, infosOfSameRule, maxResult);
     }
 }
 

@@ -28,16 +28,17 @@ public class RunCardParserService {
 
         RuncardRawInfo runcardRawInfo = runcardMappingInfo.getRuncardRawInfo();
 
-        for (OneConditionToolRuleMappingInfo oneConditionToolRuleMappingInfo : runcardMappingInfo.getOneConditionToolRuleMappingInfos()) {
+        for (OneConditionToolRuleMappingInfo oneCondMappingInfo : runcardMappingInfo.getOneConditionToolRuleMappingInfos()) {
 
             // 收集單一 oneConditionToolRuleMappingInfo 的判斷結果
             List<ResultInfo> oneConditionAllResultInfos = new ArrayList<>();
 
-            Map<String, List<Rule>> groupRulesMap = oneConditionToolRuleMappingInfo.getGroupRulesMap();
+            Map<String, List<Rule>> groupRulesMap = oneCondMappingInfo.getGroupRulesMap();
 
             //  若沒有 mapping 到任何 group -> 也要產生一筆記錄，表示該 condition 沒有對應到 group
             if (groupRulesMap == null || groupRulesMap.isEmpty()) {
-                log.info("[RunCardParserService.validateMappingRules] condition : {} has no group mapping", oneConditionToolRuleMappingInfo.getCondition());
+                log.info("RuncardID: {} Condition: {} - No group mapping found",
+                        runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition());
                 ResultInfo noGroupInfo = new ResultInfo();
                 noGroupInfo.setRuleType("no-group");
                 noGroupInfo.setResult(0); // 0 代表沒有對應
@@ -50,6 +51,9 @@ public class RunCardParserService {
                 for (Map.Entry<String, List<Rule>> entry : groupRulesMap.entrySet()) {
                     String groupName = entry.getKey();
                     List<Rule> rules = entry.getValue();
+
+                    log.info("RuncardID: {} Condition: {} - Processing group '{}' with rules: {}",
+                            runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition(), groupName, rules);
 
                     // 呼叫 DefaultRuleValidator.validateRule 去執行工廠模式 + 規則檢查
                     List<ResultInfo> partialResults = ruleValidator.validateRule(runcardRawInfo, rules);
@@ -65,6 +69,8 @@ public class RunCardParserService {
                         res.setDetail(detailMap);
                     });
 
+                    log.info("RuncardID: {} Condition: {} - Group '{}' partial results: {}",
+                            runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition(), groupName, partialResults);
                     oneConditionAllResultInfos.addAll(partialResults);
                 }
             }
@@ -73,10 +79,12 @@ public class RunCardParserService {
 
             // "toolChambers" 只顯示本 condition 下的 toolChambers
             OneConditionToolRuleGroupResult oneConditionResult = new OneConditionToolRuleGroupResult();
-            oneConditionResult.setCondition(oneConditionToolRuleMappingInfo.getCondition());
-            oneConditionResult.setToolChambers(oneConditionToolRuleMappingInfo.getToolChambers());
+            oneConditionResult.setCondition(oneCondMappingInfo.getCondition());
+            oneConditionResult.setToolChambers(oneCondMappingInfo.getToolChambers());
             oneConditionResult.setResults(finalConsolidated);
 
+            log.info("RuncardID: {} Condition: {} - Final consolidated results: {}",
+                    runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition(), finalConsolidated);
             allConditionsResultList.add(oneConditionResult);
         }
 
