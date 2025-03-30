@@ -29,7 +29,7 @@ public class RuncardFlowService {
         moduleInfoList.forEach(this::processModule);
     }
 
-    private void processModule(ModuleInfo moduleInfo) {
+    public void processModule(ModuleInfo moduleInfo) {
         log.info("[RuncardFlowService.processModule] Processing module : {}, sections : {}", moduleInfo.getModule(), moduleInfo.getSectionIds());
         List<String> sectionIds = moduleInfo.getSectionIds();
 
@@ -45,7 +45,7 @@ public class RuncardFlowService {
         processMappingInfos(oneModuleMappingInfos);
     }
 
-    private List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
+    public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
         List<RuncardMappingInfo> oneModuleMappingInfos = new ArrayList<>();
         for (RuncardRawInfo runcardRawInfo : runcardRawInfos) {
             List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId());
@@ -57,7 +57,7 @@ public class RuncardFlowService {
     }
 
 
-    private void processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos) {
+    public void processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos) {
         // 將每一張 runcard 的 runcardMappingInfo 根據不同的 rule 去做驗證
         oneModuleMappingInfos.forEach(oneRuncardMappingInfo -> {
             List<OneConditionToolRuleGroupResult> oneRuncardRuleResults = runCardParserService.validateMappingRules(oneRuncardMappingInfo);

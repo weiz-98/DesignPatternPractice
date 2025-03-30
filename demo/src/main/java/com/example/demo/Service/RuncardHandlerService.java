@@ -53,7 +53,7 @@ public class RuncardHandlerService {
     }
 
 
-    private Map<String, List<Rule>> mappingRules(List<String> toolChambers, List<ToolRuleGroup> toolGroups) {
+    public Map<String, List<Rule>> mappingRules(List<String> toolChambers, List<ToolRuleGroup> toolGroups) {
         Map<String, List<Rule>> resultMap = new HashMap<>();
         if (toolGroups == null || toolGroups.isEmpty() || toolChambers.isEmpty()) {
             return resultMap;
