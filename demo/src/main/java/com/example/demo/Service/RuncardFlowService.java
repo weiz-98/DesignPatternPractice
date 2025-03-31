@@ -42,7 +42,7 @@ public class RuncardFlowService {
         // 建立該 module 下所有 Runcard mapping 到的所有 rules
         List<RuncardMappingInfo> oneModuleMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups);
 
-        processMappingInfos(oneModuleMappingInfos);
+        List<OneRuncardRuleResult> oneModuleRuleResult = processMappingInfos(oneModuleMappingInfos);
     }
 
     public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
@@ -57,7 +57,8 @@ public class RuncardFlowService {
     }
 
 
-    public void processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos) {
+    public List<OneRuncardRuleResult> processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos) {
+        List<OneRuncardRuleResult> oneModuleRuleResult = new ArrayList<>();
         // 將每一張 runcard 的 runcardMappingInfo 根據不同的 rule 去做驗證
         oneModuleMappingInfos.forEach(oneRuncardMappingInfo -> {
             List<OneConditionToolRuleGroupResult> oneRuncardRuleResults = runCardParserService.validateMappingRules(oneRuncardMappingInfo);
@@ -65,7 +66,12 @@ public class RuncardFlowService {
             RuncardRawInfo runcardRawInfo = oneRuncardMappingInfo.getRuncardRawInfo();
             log.info("RuncardID: {} validation completed. Result size : {} ",
                     runcardRawInfo.getRuncardId(), oneRuncardRuleResults.size());
+            oneModuleRuleResult.add(OneRuncardRuleResult.builder()
+                    .runcardId(runcardRawInfo.getRuncardId())
+                    .oneConditionToolRuleGroupResults(oneRuncardRuleResults)
+                    .build());
         });
+        return oneModuleRuleResult;
     }
 }
 

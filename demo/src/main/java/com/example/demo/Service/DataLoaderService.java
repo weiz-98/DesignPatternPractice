@@ -1,26 +1,52 @@
 package com.example.demo.Service;
 
-import com.example.demo.vo.OneConditionRecipeAndToolInfo;
+import com.example.demo.po.ForwardProcess;
+import com.example.demo.po.InhibitionCheckStatus;
+import com.example.demo.po.RecipeGroupCheckBlue;
+import com.example.demo.po.WaferCondition;
 import com.example.demo.vo.ModuleInfo;
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.RuncardRawInfo;
 import com.example.demo.vo.ToolRuleGroup;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class DataLoaderService {
 
-    /**
-     * 1. 取得所有 module
-     */
+    private final RuleDao ruleDao;
+
+    // 取得 ForwardProcess 資料
+    public List<ForwardProcess> getForwardProcess() {
+        Optional<List<ForwardProcess>> opt = ruleDao.getForwardProcess();
+        return opt.orElseGet(ArrayList::new);
+    }
+
+    // 取得 InhibitionCheckStatus 資料
+    public List<InhibitionCheckStatus> getInhibitionCheckStatus() {
+        Optional<List<InhibitionCheckStatus>> opt = ruleDao.getInhibitionCheckStatus();
+        return opt.orElseGet(ArrayList::new);
+    }
+
+    // 取得 RecipeGroupCheckBlue 資料
+    public List<RecipeGroupCheckBlue> getRecipeGroupCheckBlue() {
+        Optional<List<RecipeGroupCheckBlue>> opt = ruleDao.getRecipeGroupCheckBlue();
+        return opt.orElseGet(ArrayList::new);
+    }
+
+    // 取得 WaferCondition 資料
+    public List<WaferCondition> getWaferCondition() {
+        Optional<WaferCondition> opt = ruleDao.getWaferCondition();
+        return opt.map(Collections::singletonList).orElse(Collections.emptyList());
+    }
+
     public List<ModuleInfo> getModules() {
         // 原本取得的模組清單
         List<String> modules = Arrays.asList("ModuleA", "ModuleB", "ModuleC");

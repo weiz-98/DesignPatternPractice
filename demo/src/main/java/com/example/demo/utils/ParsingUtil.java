@@ -1,84 +1,15 @@
 package com.example.demo.utils;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ParsingUtil {
-    /**
-     * 解析 recipeId => 找到 bracket {c...} => 依規則產生多個 tool#chamber.
-     * (以下為簡化示範，可依需求擴充.)
-     */
-    public static List<String> parsingChamber(List<String> toolList, String recipeId) {
-        // 若沒 recipeId => 直接回傳不改
-        if (recipeId == null || recipeId.trim().isEmpty()) {
-            return toolList;
-        }
-        List<String> expansions = parseBrackets(recipeId);
-        if (expansions.isEmpty()) {
-            return toolList; // 沒 {c...} 就不變
-        }
-
-        // 有 expansions => 組合
-        List<String> result = new ArrayList<>();
-        for (String chamber : expansions) {
-            for (String tool : toolList) {
-                if ("%%".equals(chamber)) {
-                    // {c} => #%%
-                    result.add(tool + "#%%");
-                } else {
-                    // 其他 => #chamber
-                    result.add(tool + "#" + chamber);
-                }
-            }
-        }
-        return result;
-    }
 
     /**
-     * 正則找出 {c...}，並解析成 expansions (ex: {cEF} => ["E","F"], {c(5;6)} => ["5","6"], {c{3;2}} => ["3","2"], {c} => ["%%"])
-     */
-    public static List<String> parseBrackets(String recipeId) {
-        Pattern pattern = Pattern.compile("\\{c(.*?)\\}");
-        Matcher matcher = pattern.matcher(recipeId);
-
-        List<String> expansions = new ArrayList<>();
-        while (matcher.find()) {
-            String insideC = matcher.group(1); // ex: "", "EF", "(5;6)", "{3;2}"
-            if (insideC == null) continue;
-            insideC = insideC.trim();
-
-            if (insideC.isEmpty()) {
-                expansions.add("%%"); // {c} => "%%"
-                continue;
-            }
-            // 大括號型 {c{3;2}}
-            if (insideC.startsWith("{") && insideC.endsWith("}")) {
-                String content = insideC.substring(1, insideC.length() - 1);
-                String[] arr = content.split(";");
-                expansions.addAll(Arrays.asList(arr));
-                continue;
-            }
-            // 小括號型 {c(5;6)}
-            if (insideC.startsWith("(") && insideC.endsWith(")")) {
-                String content = insideC.substring(1, insideC.length() - 1);
-                String[] arr = content.split(";");
-                expansions.addAll(Arrays.asList(arr));
-                continue;
-            }
-            // 一般型 ex: {cEF} => "EF" => ['E','F']
-            char[] chars = insideC.toCharArray();
-            for (char c : chars) {
-                expansions.add(String.valueOf(c));
-            }
-        }
-        return expansions;
-    }
-    /**
-     * 把 "JDTM16,JDTM17,JDTM20" 拆成 ["JDTM16","JDTM17","JDTM20"]
+     * 解析 toolIdList 為 List<String>，以逗號分隔
      */
     public static List<String> splitToolList(String toolIdList) {
         if (toolIdList == null || toolIdList.trim().isEmpty()) {
@@ -90,6 +21,69 @@ public class ParsingUtil {
             s = s.trim();
             if (!s.isEmpty()) {
                 result.add(s);
+            }
+        }
+        return result;
+    }
+
+    /**
+     * 根據 recipeId 的後綴，將每個 tool 與相對應的 chamber 組合起來。
+     * <p>
+     * RecipeId 格式為：xxx.xx-xxxx.xxxx-{...}，後綴的 {} 可能為：
+     * (1) {c}              -> 返回 ["%%"]
+     * (2) {cEF}            -> 返回 ["E", "F"]
+     * (3) {cEF}{c134}      -> 返回 ["E", "F", "1", "3", "4"]
+     * (4) {c(3;2)}         -> 返回 ["3", "2"]
+     * (5) 沒有大括號      -> 不做變換，直接返回 toolList
+     * <p>
+     * 最後，對於每個 tool，依序與所有擴展值組合成 "tool#chamber" 字串。
+     */
+    public static List<String> parsingChamber(List<String> toolList, String recipeId) {
+        if (recipeId == null || !recipeId.contains("{")) {
+            return toolList;
+        }
+
+        List<String> expansions = new ArrayList<>();
+        // 使用正則表達式取得所有 {} 中的內容
+        Pattern pattern = Pattern.compile("\\{(.*?)\\}");
+        Matcher matcher = pattern.matcher(recipeId);
+        while (matcher.find()) {
+            String content = matcher.group(1);  // 例如 "c", "cEF", "c(3;2)", "c134", etc.
+            if (content.startsWith("c")) {
+                content = content.substring(1); // 移除前導的 "c"
+            }
+            content = content.trim();
+            if (content.isEmpty()) {
+                // 情形 {c}
+                expansions.add("%%");
+            } else if (content.startsWith("(") && content.endsWith(")")) {
+                // 情形 {c(3;2)} 或 {c(A;B;C)}
+                String inner = content.substring(1, content.length() - 1);
+                String[] parts = inner.split(";");
+                for (String part : parts) {
+                    String trimmed = part.trim();
+                    if (!trimmed.isEmpty()) {
+                        expansions.add(trimmed);
+                    }
+                }
+            } else {
+                // 情形 {cEF}、{c134}：直接拆分成單個字元
+                for (char ch : content.toCharArray()) {
+                    expansions.add(String.valueOf(ch));
+                }
+            }
+        }
+
+        // 若未找到任何 expansion，返回原始 toolList
+        if (expansions.isEmpty()) {
+            return toolList;
+        }
+
+        // 與每個 tool 組合，形成 "tool#expansion" 的格式
+        List<String> result = new ArrayList<>();
+        for (String tool : toolList) {
+            for (String exp : expansions) {
+                result.add(tool + "#" + exp);
             }
         }
         return result;
