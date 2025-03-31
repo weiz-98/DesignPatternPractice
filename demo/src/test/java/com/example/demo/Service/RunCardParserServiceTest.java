@@ -43,7 +43,7 @@ class RunCardParserServiceTest {
         // Condition 2: 有 group mapping，condition 值為 "COND_WITH_GROUP"
         OneConditionToolRuleMappingInfo conditionWithGroup = new OneConditionToolRuleMappingInfo();
         conditionWithGroup.setCondition("COND_WITH_GROUP");
-        conditionWithGroup.setToolChambers(Arrays.asList("JDTM20#C"));
+        conditionWithGroup.setToolChambers(List.of("JDTM20#C"));
         Rule ruleA = new Rule();
         ruleA.setRuleType("ruleA");
         Map<String, List<Rule>> groupMap = new HashMap<>();
@@ -91,7 +91,7 @@ class RunCardParserServiceTest {
         assertEquals(Arrays.asList("JDTM10#A", "JDTM10#B"), noGroupResult.getToolChambers());
         assertNotNull(noGroupResult.getResults());
         assertEquals(1, noGroupResult.getResults().size());
-        ResultInfo noGroupInfo = noGroupResult.getResults().get(0);
+        ResultInfo noGroupInfo = noGroupResult.getResults().getFirst();
         assertEquals("no-group", noGroupInfo.getRuleType());
         assertEquals(0, noGroupInfo.getResult());
         assertEquals("No group matched for this condition", noGroupInfo.getDetail().get("msg"));
@@ -102,10 +102,10 @@ class RunCardParserServiceTest {
                 .findFirst();
         assertTrue(withGroupOpt.isPresent());
         OneConditionToolRuleGroupResult withGroupResult = withGroupOpt.get();
-        assertEquals(Arrays.asList("JDTM20#C"), withGroupResult.getToolChambers());
+        assertEquals(List.of("JDTM20#C"), withGroupResult.getToolChambers());
         assertNotNull(withGroupResult.getResults());
         assertEquals(1, withGroupResult.getResults().size());
-        ResultInfo ruleAResult = withGroupResult.getResults().get(0);
+        ResultInfo ruleAResult = withGroupResult.getResults().getFirst();
         assertEquals("ruleA", ruleAResult.getRuleType());
         assertEquals(1, ruleAResult.getResult());
         // 驗證 group name 已經被加入到 detail
@@ -179,7 +179,7 @@ class RunCardParserServiceTest {
         detailA.put("msg", "Pass from GroupA");
         dummyResultA.setDetail(detailA);
         when(ruleValidator.validateRule(eq(dummyRawInfo), argThat(rules ->
-                rules != null && !rules.isEmpty() && "ruleA".equals(rules.get(0).getRuleType())
+                rules != null && !rules.isEmpty() && "ruleA".equals(rules.getFirst().getRuleType())
         ))).thenReturn(Collections.singletonList(dummyResultA));
 
         ResultInfo dummyResultB = new ResultInfo();
@@ -189,7 +189,7 @@ class RunCardParserServiceTest {
         detailB.put("msg", "Pass from GroupB");
         dummyResultB.setDetail(detailB);
         when(ruleValidator.validateRule(eq(dummyRawInfo), argThat(rules ->
-                rules != null && !rules.isEmpty() && "ruleB".equals(rules.get(0).getRuleType())
+                rules != null && !rules.isEmpty() && "ruleB".equals(rules.getFirst().getRuleType())
         ))).thenReturn(Collections.singletonList(dummyResultB));
 
         // 呼叫被測方法
@@ -199,12 +199,12 @@ class RunCardParserServiceTest {
         assertEquals(2, results.size());
 
         // 驗證第一筆 (mappingInfoDup1)
-        OneConditionToolRuleGroupResult result1 = results.get(0);
+        OneConditionToolRuleGroupResult result1 = results.getFirst();
         assertEquals("COND1", result1.getCondition());
         assertEquals(Collections.singletonList("Tool1#A"), result1.getToolChambers());
         assertNotNull(result1.getResults());
         assertEquals(1, result1.getResults().size());
-        ResultInfo resInfo1 = result1.getResults().get(0);
+        ResultInfo resInfo1 = result1.getResults().getFirst();
         assertEquals("ruleA", resInfo1.getRuleType());
         assertEquals(1, resInfo1.getResult());
         assertEquals("GroupA", resInfo1.getDetail().get("group"));
@@ -216,7 +216,7 @@ class RunCardParserServiceTest {
         assertEquals(Collections.singletonList("Tool2#B"), result2.getToolChambers());
         assertNotNull(result2.getResults());
         assertEquals(1, result2.getResults().size());
-        ResultInfo resInfo2 = result2.getResults().get(0);
+        ResultInfo resInfo2 = result2.getResults().getFirst();
         assertEquals("ruleB", resInfo2.getRuleType());
         assertEquals(2, resInfo2.getResult());
         assertEquals("GroupB", resInfo2.getDetail().get("group"));
