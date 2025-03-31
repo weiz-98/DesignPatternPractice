@@ -86,7 +86,7 @@ class RuncardHandlerServiceTest {
         OneConditionToolRuleMappingInfo condMapping1 = mappingInfo.getOneConditionToolRuleMappingInfos().get(0);
         assertEquals("COND1", condMapping1.getCondition());
         // 利用 ParsingUtil 的預設實作，假設 "xxx-{cEF}" 可解析成 ["JDTM16#E", "JDTM17#E"]
-        List<String> expectedChambers1 = Arrays.asList("JDTM16#E", "JDTM17#E", "JDTM16#F", "JDTM17#F");
+        List<String> expectedChambers1 = Arrays.asList("JDTM16#E", "JDTM16#F", "JDTM17#E", "JDTM17#F");
         assertEquals(expectedChambers1, condMapping1.getToolChambers());
         // 檢查 groupRulesMap：對於 COND1，應該匹配到 GroupA 與 GroupB
         Map<String, List<Rule>> groupRulesMap1 = condMapping1.getGroupRulesMap();

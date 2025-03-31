@@ -5,54 +5,65 @@ import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class ParsingUtil {
 
-    /**
-     * 解析 toolIdList 為 List<String>，以逗號分隔
-     */
+    private static final Pattern EXPANSION_PATTERN = Pattern.compile("\\{(.*?)\\}");
+
     public static List<String> splitToolList(String toolIdList) {
         if (toolIdList == null || toolIdList.trim().isEmpty()) {
             return Collections.emptyList();
         }
-        String[] arr = toolIdList.split(",");
-        List<String> result = new ArrayList<>();
-        for (String s : arr) {
-            s = s.trim();
-            if (!s.isEmpty()) {
-                result.add(s);
-            }
-        }
-        return result;
+        // 使用 stream 語法簡化
+        return Stream.of(toolIdList.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 
     /**
-     * 根據 recipeId 的後綴，將每個 tool 與相對應的 chamber 組合起來。
-     * <p>
-     * RecipeId 格式為：xxx.xx-xxxx.xxxx-{...}，後綴的 {} 可能為：
+     * RecipeId 格式為：xxx.xx-xxxx.xxxx-{...}，
      * (1) {c}              -> 返回 ["%%"]
      * (2) {cEF}            -> 返回 ["E", "F"]
      * (3) {cEF}{c134}      -> 返回 ["E", "F", "1", "3", "4"]
      * (4) {c(3;2)}         -> 返回 ["3", "2"]
      * (5) 沒有大括號      -> 不做變換，直接返回 toolList
-     * <p>
-     * 最後，對於每個 tool，依序與所有擴展值組合成 "tool#chamber" 字串。
      */
     public static List<String> parsingChamber(List<String> toolList, String recipeId) {
         if (recipeId == null || !recipeId.contains("{")) {
             return toolList;
         }
 
-        List<String> expansions = new ArrayList<>();
-        // 使用正則表達式取得所有 {} 中的內容
-        Pattern pattern = Pattern.compile("\\{(.*?)\\}");
-        Matcher matcher = pattern.matcher(recipeId);
-        while (matcher.find()) {
-            String content = matcher.group(1);  // 例如 "c", "cEF", "c(3;2)", "c134", etc.
-            if (content.startsWith("c")) {
-                content = content.substring(1); // 移除前導的 "c"
+        List<String> expansions = extractExpansions(recipeId);
+        if (expansions.isEmpty()) {
+            return toolList;
+        }
+
+        List<String> result = new ArrayList<>();
+        for (String tool : toolList) {
+            for (String exp : expansions) {
+                result.add(tool + "#" + exp);
             }
-            content = content.trim();
+        }
+        return result;
+    }
+
+    /**
+     * 從 recipeId 中提取所有大括號內的擴展內容，依據不同格式進行拆分：
+     * - 若內容為空 (例如 {c}) 則返回 "%%"
+     * - 若內容包含括號 (例如 {c(3;2)}) 則分割後返回 ["3", "2"]
+     * - 否則將內容拆成單個字元返回 (例如 {cEF} -> ["E", "F"])
+     */
+    private static List<String> extractExpansions(String recipeId) {
+        List<String> expansions = new ArrayList<>();
+        Matcher matcher = EXPANSION_PATTERN.matcher(recipeId);
+        while (matcher.find()) {
+            String content = matcher.group(1); // 例如 "c", "cEF", "c(3;2)", "c134", 等
+            if (content.startsWith("c")) {
+                content = content.substring(1).trim(); // 移除前導的 "c" 與多餘空白
+            }
             if (content.isEmpty()) {
                 // 情形 {c}
                 expansions.add("%%");
@@ -73,19 +84,6 @@ public class ParsingUtil {
                 }
             }
         }
-
-        // 若未找到任何 expansion，返回原始 toolList
-        if (expansions.isEmpty()) {
-            return toolList;
-        }
-
-        // 與每個 tool 組合，形成 "tool#expansion" 的格式
-        List<String> result = new ArrayList<>();
-        for (String tool : toolList) {
-            for (String exp : expansions) {
-                result.add(tool + "#" + exp);
-            }
-        }
-        return result;
+        return expansions;
     }
 }

@@ -3,16 +3,15 @@ package com.example.demo.utils;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ParsingUtilTest {
 
     @Test
     void splitToolList_nullOrEmpty() {
-        // 當輸入 null 或空字串時應回傳空集合
         assertTrue(ParsingUtil.splitToolList(null).isEmpty());
         assertTrue(ParsingUtil.splitToolList("").isEmpty());
         assertTrue(ParsingUtil.splitToolList("   ").isEmpty());
@@ -20,21 +19,18 @@ class ParsingUtilTest {
 
     @Test
     void splitToolList_normal() {
-        // 輸入 "JDTM16, JDTM17, JDTM20" 預期分割後去掉多餘空白
         List<String> expected = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         assertEquals(expected, ParsingUtil.splitToolList("JDTM16, JDTM17, JDTM20"));
     }
 
     @Test
     void parsingChamber_noBrackets() {
-        // 當 recipeId 中沒有大括號，直接回傳原始工具列表
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         assertEquals(tools, ParsingUtil.parsingChamber(tools, "xxx.xx-xxxx.xxxx-"));
     }
 
     @Test
     void parsingChamber_case1_bracketsEmpty() {
-        // 情形 (1): {c}  -> 返回 ["%%"]
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{c}";
         List<String> expected = Arrays.asList("JDTM16#%%", "JDTM17#%%", "JDTM20#%%");
@@ -43,12 +39,12 @@ class ParsingUtilTest {
 
     @Test
     void parsingChamber_case2_singleLetters() {
-        // 情形 (2): {cEF}  -> 返回 ["E","F"]
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{cEF}";
         List<String> expected = Arrays.asList(
-                "JDTM16#E", "JDTM17#E", "JDTM20#E",
-                "JDTM16#F", "JDTM17#F", "JDTM20#F"
+                "JDTM16#E", "JDTM16#F",
+                "JDTM17#E", "JDTM17#F",
+                "JDTM20#E", "JDTM20#F"
         );
         assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
     }
@@ -63,13 +59,12 @@ class ParsingUtilTest {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{cEF}{c134}{cAB}";
         List<String> expected = Arrays.asList(
-                "JDTM16#E", "JDTM17#E", "JDTM20#E",
-                "JDTM16#F", "JDTM17#F", "JDTM20#F",
-                "JDTM16#1", "JDTM17#1", "JDTM20#1",
-                "JDTM16#3", "JDTM17#3", "JDTM20#3",
-                "JDTM16#4", "JDTM17#4", "JDTM20#4",
-                "JDTM16#A", "JDTM17#A", "JDTM20#A",
-                "JDTM16#B", "JDTM17#B", "JDTM20#B"
+                // For JDTM16
+                "JDTM16#E", "JDTM16#F", "JDTM16#1", "JDTM16#3", "JDTM16#4", "JDTM16#A", "JDTM16#B",
+                // For JDTM17
+                "JDTM17#E", "JDTM17#F", "JDTM17#1", "JDTM17#3", "JDTM17#4", "JDTM17#A", "JDTM17#B",
+                // For JDTM20
+                "JDTM20#E", "JDTM20#F", "JDTM20#1", "JDTM20#3", "JDTM20#4", "JDTM20#A", "JDTM20#B"
         );
         assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
     }
@@ -80,8 +75,9 @@ class ParsingUtilTest {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{c(3;2)}";
         List<String> expected = Arrays.asList(
-                "JDTM16#3", "JDTM17#3", "JDTM20#3",
-                "JDTM16#2", "JDTM17#2", "JDTM20#2"
+                "JDTM16#3", "JDTM16#2",
+                "JDTM17#3", "JDTM17#2",
+                "JDTM20#3", "JDTM20#2"
         );
         assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
     }
@@ -96,12 +92,12 @@ class ParsingUtilTest {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{c(2;3)}{c(A;C)}{c(B;D)}";
         List<String> expected = Arrays.asList(
-                "JDTM16#2", "JDTM17#2", "JDTM20#2",
-                "JDTM16#3", "JDTM17#3", "JDTM20#3",
-                "JDTM16#A", "JDTM17#A", "JDTM20#A",
-                "JDTM16#C", "JDTM17#C", "JDTM20#C",
-                "JDTM16#B", "JDTM17#B", "JDTM20#B",
-                "JDTM16#D", "JDTM17#D", "JDTM20#D"
+                // For JDTM16
+                "JDTM16#2", "JDTM16#3", "JDTM16#A", "JDTM16#C", "JDTM16#B", "JDTM16#D",
+                // For JDTM17
+                "JDTM17#2", "JDTM17#3", "JDTM17#A", "JDTM17#C", "JDTM17#B", "JDTM17#D",
+                // For JDTM20
+                "JDTM20#2", "JDTM20#3", "JDTM20#A", "JDTM20#C", "JDTM20#B", "JDTM20#D"
         );
         assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
     }
@@ -112,8 +108,9 @@ class ParsingUtilTest {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{cEF}";
         List<String> expected = Arrays.asList(
-                "JDTM16#E", "JDTM17#E", "JDTM20#E",
-                "JDTM16#F", "JDTM17#F", "JDTM20#F"
+                "JDTM16#E", "JDTM16#F",
+                "JDTM17#E", "JDTM17#F",
+                "JDTM20#E", "JDTM20#F"
         );
         assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
     }
