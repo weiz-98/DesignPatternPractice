@@ -23,21 +23,18 @@ public class RuleWaferCondition implements IRuleCheck {
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        // 1) 若 lotType 為空 => skip
         if (RuleUtil.isLotTypeEmpty(rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType is empty => skip check"));
             return info;
         }
 
-        // 2) 檢查是否應該做檢查
         if (RuleUtil.shouldCheckLotType(runcardRawInfo, rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
             return info;
         }
 
-        // 3) 執行檢查: 取得 waferCondition
         WaferCondition wc = dataLoaderService.getWaferCondition();
         int uniqueCount = parseIntSafe(wc.getUniqueCount());
         int wfrQty = parseIntSafe(wc.getWfrQty());
