@@ -1,4 +1,4 @@
-package com.example.demo.Service;
+package com.example.demo.service;
 
 import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -83,7 +83,7 @@ class RuncardHandlerServiceTest {
         assertEquals(2, mappingInfo.getOneConditionToolRuleMappingInfos().size());
 
         // 檢查第一筆 condition mapping資訊 (來自 recipeInfo1)
-        OneConditionToolRuleMappingInfo condMapping1 = mappingInfo.getOneConditionToolRuleMappingInfos().get(0);
+        OneConditionToolRuleMappingInfo condMapping1 = mappingInfo.getOneConditionToolRuleMappingInfos().getFirst();
         assertEquals("COND1", condMapping1.getCondition());
         // 利用 ParsingUtil 的預設實作，假設 "xxx-{cEF}" 可解析成 ["JDTM16#E", "JDTM17#E"]
         List<String> expectedChambers1 = Arrays.asList("JDTM16#E", "JDTM16#F", "JDTM17#E", "JDTM17#F");
@@ -155,11 +155,11 @@ class RuncardHandlerServiceTest {
         List<Rule> groupARules = resultMap.get("GroupA");
         assertNotNull(groupARules);
         assertEquals(1, groupARules.size());
-        assertEquals("ruleA", groupARules.get(0).getRuleType());
+        assertEquals("ruleA", groupARules.getFirst().getRuleType());
 
         List<Rule> groupBRules = resultMap.get("GroupB");
         assertNotNull(groupBRules);
         assertEquals(1, groupBRules.size());
-        assertEquals("ruleB", groupBRules.get(0).getRuleType());
+        assertEquals("ruleB", groupBRules.getFirst().getRuleType());
     }
 }

@@ -1,4 +1,4 @@
-package com.example.demo.Service;
+package com.example.demo.rule;
 
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;

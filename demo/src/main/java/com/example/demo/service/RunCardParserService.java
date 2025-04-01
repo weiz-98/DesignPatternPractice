@@ -1,5 +1,6 @@
-package com.example.demo.Service;
+package com.example.demo.service;
 
+import com.example.demo.rule.DefaultRuleValidator;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

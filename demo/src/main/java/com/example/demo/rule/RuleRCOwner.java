@@ -1,4 +1,4 @@
-package com.example.demo.Service;
+package com.example.demo.rule;
 
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
@@ -6,9 +6,8 @@ import com.example.demo.vo.RuncardRawInfo;
 import org.springframework.stereotype.Component;
 
 import java.util.Collections;
-
 @Component
-public class RuleBCheck implements IRuleCheck {
+public class RuleRCOwner implements IRuleCheck {
 
     @Override
     public ResultInfo check(RuncardRawInfo runcardRawInfo, Rule rule) {

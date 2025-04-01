@@ -9,12 +9,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class RuncardRawInfo {
     private String runcardId;
+    private String issuingEngineer;
+    private String lotId;
     private String partId;
-    private String opeNo;
-    private String arriveAt;
-    private String createTime;
-    private String approvedManager;
-    private String createdEngineer;
+    private String status;
+    private String purpose;
+    private String supervisorAndDepartment;
+    private Integer numberOfPieces;
+    private String holdAtOperNo;
 }
 
 

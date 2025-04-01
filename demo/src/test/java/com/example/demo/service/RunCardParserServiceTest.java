@@ -1,5 +1,6 @@
-package com.example.demo.Service;
+package com.example.demo.service;
 
+import com.example.demo.rule.DefaultRuleValidator;
 import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -1,5 +1,8 @@
-package com.example.demo.Service;
+package com.example.demo.service;
 
+import com.example.demo.rule.DefaultRuleValidator;
+import com.example.demo.rule.IRuleCheck;
+import com.example.demo.rule.RuleCheckFactory;
 import com.example.demo.vo.RuncardRawInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
@@ -124,7 +127,7 @@ class DefaultRuleValidatorTest {
         log.info("consolidated : {}", consolidated);
         // 預期合併後只留一筆，因為 ruleType 相同
         assertEquals(1, consolidated.size());
-        ResultInfo finalInfo = consolidated.get(0);
+        ResultInfo finalInfo = consolidated.getFirst();
         assertEquals("ruleA", finalInfo.getRuleType());
         // 結果應為 3 (取最大燈號)
         assertEquals(3, finalInfo.getResult());
@@ -153,7 +156,7 @@ class DefaultRuleValidatorTest {
 
         List<ResultInfo> consolidated = defaultRuleValidator.parseResult(inputList);
         assertEquals(1, consolidated.size());
-        ResultInfo finalInfo = consolidated.get(0);
+        ResultInfo finalInfo = consolidated.getFirst();
         assertEquals("ruleX", finalInfo.getRuleType());
         // 預設應為 3
         assertEquals(3, finalInfo.getResult());

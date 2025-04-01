@@ -1,4 +1,4 @@
-package com.example.demo.Service;
+package com.example.demo.rule;
 
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
@@ -137,7 +137,7 @@ public class DefaultRuleValidator implements IRuleValidator {
         String runcardId = "UNKNOWN";
         String condition = "UNKNOWN";
         if (!infosOfSameRule.isEmpty()) {
-            Map<String, Object> d = infosOfSameRule.get(0).getDetail();
+            Map<String, Object> d = infosOfSameRule.getFirst().getDetail();
             if (d != null) {
                 if (d.containsKey("runcardId")) {
                     runcardId = d.get("runcardId").toString();
