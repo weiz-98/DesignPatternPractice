@@ -119,7 +119,7 @@ public class DefaultRuleValidator implements IRuleValidator {
             if (!groupNames.isEmpty()) {
                 mergedDetail.put("repeatedGroups", new ArrayList<>(groupNames));
             }
-            logConsolidationDetails(infosOfSameRule, ruleType, groupNames, maxResult);
+//            logConsolidationDetails(infosOfSameRule, ruleType, groupNames, maxResult);
             // 4. 建立合併後的 ResultInfo
             ResultInfo finalRi = new ResultInfo();
             finalRi.setRuleType(ruleType);
@@ -144,7 +144,7 @@ public class DefaultRuleValidator implements IRuleValidator {
                 }
                 if (d.containsKey("condition")) {
                     condition = d.get("condition").toString();
-                }
+                } // 目前都會是 UNKNOWN 若要印 condition 需傳 oneCondMappingInfo 才可以
             }
         }
         log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}",

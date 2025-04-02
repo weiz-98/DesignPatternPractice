@@ -5,10 +5,8 @@ import com.example.demo.po.InhibitionCheckStatus;
 import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.po.WaferCondition;
 import com.example.demo.rule.RuleDao;
-import com.example.demo.vo.ModuleInfo;
-import com.example.demo.vo.OneConditionRecipeAndToolInfo;
-import com.example.demo.vo.RuncardRawInfo;
-import com.example.demo.vo.ToolRuleGroup;
+import com.example.demo.rule.RuncardDao;
+import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,6 +21,7 @@ import java.util.stream.Collectors;
 public class DataLoaderService {
 
     private final RuleDao ruleDao;
+    private final RuncardDao runcardDao;
 
     // 取得 ForwardProcess 資料
     public List<ForwardProcess> getForwardProcess() {
@@ -37,7 +36,7 @@ public class DataLoaderService {
     }
 
     // 取得 RecipeGroupCheckBlue 資料
-    public List<RecipeGroupCheckBlue> getRecipeGroupCheckBlue() {
+    public List<RecipeGroupCheckBlue> getRecipeGroupCheckBlue(String recipeGroupId, List<String> toolIds) {
         Optional<List<RecipeGroupCheckBlue>> opt = ruleDao.getRecipeGroupCheckBlue();
         return opt.orElseGet(ArrayList::new);
     }
@@ -186,5 +185,10 @@ public class DataLoaderService {
 
         log.info("[getRecipeAndToolInfo] runcardId={}, returnSize={}", runcardId, mockList.size());
         return mockList;
+    }
+
+    public List<RecipeGroupsAndToolInfo> getRecipeGroupsAndToolInfo() {
+        Optional<List<RecipeGroupsAndToolInfo>> opt = runcardDao.getRecipeGroupsAndToolInfos();
+        return opt.orElseGet(ArrayList::new);
     }
 }
