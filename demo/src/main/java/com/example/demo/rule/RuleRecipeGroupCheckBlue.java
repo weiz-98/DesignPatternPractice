@@ -10,7 +10,7 @@ import java.util.Collections;
 public class RuleRecipeGroupCheckBlue implements IRuleCheck {
 
     @Override
-    public ResultInfo check(RuncardRawInfo runcardRawInfo, Rule rule) {
+    public ResultInfo check(String cond,RuncardRawInfo runcardRawInfo, Rule rule) {
         // 以下為範例邏輯，實際可用 rule.settings 去做判斷
         // 這裡假設簡單以 "ruleA" 就給予綠燈(1)
         ResultInfo info = new ResultInfo();

@@ -10,7 +10,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -21,26 +24,50 @@ public class RuleForwardProcess implements IRuleCheck {
     private final DataLoaderService dataLoaderService;
 
     @Override
-    public ResultInfo check(RuncardRawInfo runcardRawInfo, Rule rule) {
+    public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
+        log.info("RuncardID: {} Condition: {} - Start RuleForwardProcess check",
+                runcardRawInfo.getRuncardId(), cond);
+
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
         if (RuleUtil.isLotTypeEmpty(rule)) {
+            log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
+                    runcardRawInfo.getRuncardId(), cond);
+
             info.setResult(0);
-            info.setDetail(Collections.singletonMap("msg", "lotType is empty => skip check"));
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType is empty => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            info.setDetail(detail);
             return info;
         }
 
         if (RuleUtil.isLotTypeMismatch(runcardRawInfo, rule)) {
+            log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
+                    runcardRawInfo.getRuncardId(), cond);
+
             info.setResult(0);
-            info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType mismatch => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            info.setDetail(detail);
             return info;
         }
 
         Map<String, Object> settings = rule.getSettings();
         if (settings == null) {
+            log.info("RuncardID: {} Condition: {} - No settings => skip check",
+                    runcardRawInfo.getRuncardId(), cond);
+
             info.setResult(0);
-            info.setDetail(Collections.singletonMap("msg", "No settings => skip check"));
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "No settings => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            info.setDetail(detail);
             return info;
         }
 
@@ -49,10 +76,20 @@ public class RuleForwardProcess implements IRuleCheck {
         List<String> recipeIds = RuleUtil.parseStringList(settings.get("recipeIds"));
         List<String> toolIds = RuleUtil.parseStringList(settings.get("toolIds"));
 
+        log.info("RuncardID: {} Condition: {} - forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}",
+                runcardRawInfo.getRuncardId(), cond, forwardSteps, includeMeasurement, recipeIds, toolIds);
+
         List<ForwardProcess> allForward = dataLoaderService.getForwardProcess();
         if (allForward.isEmpty()) {
+            log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip",
+                    runcardRawInfo.getRuncardId(), cond);
+
             info.setResult(3);
-            info.setDetail(Collections.singletonMap("error", "No ForwardProcess data => skip"));
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("error", "No ForwardProcess data => skip");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            info.setDetail(detail);
             return info;
         }
 
@@ -76,7 +113,9 @@ public class RuleForwardProcess implements IRuleCheck {
         boolean pass = passRecipe && passTool;
         int lamp = pass ? 1 : 3;
 
-        // detail
+        log.info("RuncardID: {} Condition: {} - passRecipe={}, passTool={}, finalLamp={}",
+                runcardRawInfo.getRuncardId(), cond, passRecipe, passTool, lamp);
+
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("result", lamp);
         detailMap.put("forwardSteps", forwardSteps);
@@ -92,9 +131,15 @@ public class RuleForwardProcess implements IRuleCheck {
                 .collect(Collectors.toList());
         detailMap.put("forwardToolIdList", forwardToolIds);
         detailMap.put("forwardRecipeIdList", forwardRecipeIds);
+        detailMap.put("runcardId", runcardRawInfo.getRuncardId());
+        detailMap.put("condition", cond);
 
         info.setResult(lamp);
         info.setDetail(detailMap);
+
+        log.info("RuncardID: {} Condition: {} - RuleForwardProcess check done, lamp={}",
+                runcardRawInfo.getRuncardId(), cond, lamp);
+
         return info;
     }
 

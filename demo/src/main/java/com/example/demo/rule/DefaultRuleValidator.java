@@ -20,7 +20,7 @@ public class DefaultRuleValidator implements IRuleValidator {
      * 逐一將每個 group 所 mapping 到的 rule 用 RuleCheckFactory 取得對應 checker 來執行檢查
      */
     @Override
-    public List<ResultInfo> validateRule(RuncardRawInfo runcardRawInfo, List<Rule> rules) {
+    public List<ResultInfo> validateRule(String cond, RuncardRawInfo runcardRawInfo, List<Rule> rules) {
         if (rules == null || rules.isEmpty()) {
             log.error("Runcard ID : {} has no rules to validate",
                     (runcardRawInfo != null ? runcardRawInfo.getRuncardId() : "UNKNOWN"));
@@ -31,7 +31,7 @@ public class DefaultRuleValidator implements IRuleValidator {
         for (Rule rule : rules) {
             try {
                 IRuleCheck checker = ruleCheckFactory.getRuleCheck(rule.getRuleType());
-                ResultInfo info = checker.check(runcardRawInfo, rule);
+                ResultInfo info = checker.check(cond, runcardRawInfo, rule);
                 results.add(info);
             } catch (Exception ex) {
                 // 如果該 rule 找不到對應的 checker 或執行出錯 => 做個紅燈
@@ -119,7 +119,7 @@ public class DefaultRuleValidator implements IRuleValidator {
             if (!groupNames.isEmpty()) {
                 mergedDetail.put("repeatedGroups", new ArrayList<>(groupNames));
             }
-//            logConsolidationDetails(infosOfSameRule, ruleType, groupNames, maxResult);
+            logConsolidationDetails(infosOfSameRule, ruleType, groupNames, maxResult);
             // 4. 建立合併後的 ResultInfo
             ResultInfo finalRi = new ResultInfo();
             finalRi.setRuleType(ruleType);
@@ -144,7 +144,7 @@ public class DefaultRuleValidator implements IRuleValidator {
                 }
                 if (d.containsKey("condition")) {
                     condition = d.get("condition").toString();
-                } // 目前都會是 UNKNOWN 若要印 condition 需傳 oneCondMappingInfo 才可以
+                }
             }
         }
         log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}",

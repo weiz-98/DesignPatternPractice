@@ -37,12 +37,13 @@ class RuleForwardProcessTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.emptyList());
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        // 新增參數 "TEST_COND"
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
-
         verify(dataLoaderService, never()).getForwardProcess();
     }
 
@@ -52,8 +53,10 @@ class RuleForwardProcessTest {
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-999");
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        // 新增參數 "TEST_COND"
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
@@ -67,8 +70,10 @@ class RuleForwardProcessTest {
         rule.setSettings(null);
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-123");
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        // 新增參數 "TEST_COND"
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("No settings => skip check", info.getDetail().get("msg"));
@@ -82,10 +87,12 @@ class RuleForwardProcessTest {
         rule.setSettings(Map.of("forwardSteps", 2));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-123");
+        rc.setRuncardId("RC-001");
 
         when(dataLoaderService.getForwardProcess()).thenReturn(Collections.emptyList());
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        // 新增參數 "TEST_COND"
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult());
         assertEquals("No ForwardProcess data => skip", info.getDetail().get("error"));
@@ -104,6 +111,7 @@ class RuleForwardProcessTest {
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-123");
+        rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = new ArrayList<>();
         all.add(new ForwardProcess("LOT1", "preOpe1", "BABA", "TOOL-X", "2023-09-01T10:00", "someCat"));
@@ -112,7 +120,7 @@ class RuleForwardProcessTest {
 
         when(dataLoaderService.getForwardProcess()).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult(), "all match");
         assertEquals(1, info.getDetail().get("result"));
@@ -132,6 +140,7 @@ class RuleForwardProcessTest {
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-888");
+        rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = List.of(
                 new ForwardProcess("LOT1", "OPE1", "HelloX", "TOOL-999", "2023-09-01T10:00", "???"),
@@ -139,7 +148,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess()).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult(), "找不到 recipeId= 'ABC' => fail =>3");
         verify(dataLoaderService, times(1)).getForwardProcess();
@@ -157,13 +166,14 @@ class RuleForwardProcessTest {
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-123"); // => not skip
+        rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = List.of(
                 new ForwardProcess("LOT1", "OPE1", "RCPX", "TOOL-1", "2023-09-01T10:00", "???")
         );
         when(dataLoaderService.getForwardProcess()).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult(), "TOOL-2 不存在 => fail =>3");
         verify(dataLoaderService, times(1)).getForwardProcess();
@@ -181,13 +191,14 @@ class RuleForwardProcessTest {
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-999");
+        rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = new ArrayList<>();
         all.add(new ForwardProcess("LOT1", "pre1", "NoMeasureTest", "TOOL-ABC", "2023-09-01T09:00", "someCat"));
         all.add(new ForwardProcess("LOT2", "pre2", "HasMeasureTestInside", "TOOL-XYZ", "2023-09-01T10:00", "Measurement"));
         when(dataLoaderService.getForwardProcess()).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check(rc, rule);
+        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult(), "only leave measurement");
         verify(dataLoaderService, times(1)).getForwardProcess();

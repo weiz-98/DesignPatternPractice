@@ -12,7 +12,7 @@ public interface IRuleCheck {
      * TODO detail 裡需要包含 <result ,(1 or 2 or 3)>
      * TODO 每個 check 都需要先做 lot type filter
      */
-    ResultInfo check(RuncardRawInfo runcardRawInfoId, Rule rule);
+    ResultInfo check(String cond, RuncardRawInfo runcardRawInfoId, Rule rule);
 }
 
 

@@ -3,20 +3,21 @@ package com.example.demo.service;
 import com.example.demo.rule.DefaultRuleValidator;
 import com.example.demo.rule.IRuleCheck;
 import com.example.demo.rule.RuleCheckFactory;
-import com.example.demo.vo.RuncardRawInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
+import com.example.demo.vo.RuncardRawInfo;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
@@ -47,7 +48,7 @@ class DefaultRuleValidatorTest {
     @Test
     void validateRule_withValidRules() {
         // 模擬一個 IRuleCheck 會根據 ruleA 返回一個 ResultInfo
-        IRuleCheck dummyChecker = (r, rule) -> {
+        IRuleCheck dummyChecker = (cond, runcard, rule) -> {
             ResultInfo info = new ResultInfo();
             info.setRuleType(rule.getRuleType());
             info.setResult(1); // 模擬綠燈
@@ -62,7 +63,7 @@ class DefaultRuleValidatorTest {
         // 建立一個規則清單，只包含 dummyRuleA
         List<Rule> rules = Collections.singletonList(dummyRuleA);
 
-        List<ResultInfo> results = defaultRuleValidator.validateRule(dummyRuncard, rules);
+        List<ResultInfo> results = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, rules);
         log.info("results : {}", results);
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -79,7 +80,7 @@ class DefaultRuleValidatorTest {
         when(ruleCheckFactory.getRuleCheck("ruleB")).thenThrow(new IllegalArgumentException("Checker not found"));
 
         List<Rule> rules = Collections.singletonList(dummyRuleB);
-        List<ResultInfo> results = defaultRuleValidator.validateRule(dummyRuncard, rules);
+        List<ResultInfo> results = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, rules);
 
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -95,8 +96,9 @@ class DefaultRuleValidatorTest {
     @Test
     void validateRule_withEmptyRules() {
         // 當 rules 為 null 或空集合時，應返回空集合
-        List<ResultInfo> resultsNull = defaultRuleValidator.validateRule(dummyRuncard, null);
-        List<ResultInfo> resultsEmpty = defaultRuleValidator.validateRule(dummyRuncard, Collections.emptyList());
+        // 多加 "TEST_COND"
+        List<ResultInfo> resultsNull = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, null);
+        List<ResultInfo> resultsEmpty = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, Collections.emptyList());
         assertTrue(resultsNull.isEmpty());
         assertTrue(resultsEmpty.isEmpty());
     }

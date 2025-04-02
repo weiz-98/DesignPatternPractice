@@ -9,7 +9,7 @@ import java.util.List;
 
 @Component
 public interface IRuleValidator {
-    List<ResultInfo> validateRule(RuncardRawInfo runcardRawInfo, List<Rule> rules);
+    List<ResultInfo> validateRule(String cond, RuncardRawInfo runcardRawInfo, List<Rule> rules);
 
     List<ResultInfo> parseResult(List<ResultInfo> resultInfos);
 }

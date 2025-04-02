@@ -56,8 +56,8 @@ public class RunCardParserService {
                     log.info("RuncardID: {} Condition: {} - Processing group '{}' with rules: {}",
                             runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition(), groupName, rules);
 
-                    // 呼叫 DefaultRuleValidator.validateRule 去執行工廠模式 + 規則檢查
-                    List<ResultInfo> partialResults = ruleValidator.validateRule(runcardRawInfo, rules);
+                    // 呼叫 DefaultRuleValidator.validateRule 去執行該 condition 下 同 rule 的檢查
+                    List<ResultInfo> partialResults = ruleValidator.validateRule(oneCondMappingInfo.getCondition(), runcardRawInfo, rules);
 
                     // 在 parseResult 階段會把這些 groupName 合併成 "repeatedGroups",
                     // 並在 detail 裡分別以 "GroupA_xxx", "GroupB_xxx" 形式呈現

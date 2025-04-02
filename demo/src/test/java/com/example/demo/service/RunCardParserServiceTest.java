@@ -67,14 +67,15 @@ class RunCardParserServiceTest {
         // Stub：當 parseResult() 被呼叫時，直接回傳輸入列表
         when(ruleValidator.parseResult(anyList())).thenAnswer(invocation -> invocation.getArgument(0));
 
-        // 對於 conditionWithGroup，stub validateRule()：假設返回一筆 result，result=1 (綠燈)
+        // 對於 conditionWithGroup，stub validateRule()：假設返回一筆 result=1 (綠燈)
         ResultInfo dummyResult = new ResultInfo();
         dummyResult.setRuleType("ruleA");
         dummyResult.setResult(1);
         Map<String, Object> detail = new HashMap<>();
         detail.put("msg", "Pass from GroupA");
         dummyResult.setDetail(detail);
-        when(ruleValidator.validateRule(eq(dummyRawInfo), anyList()))
+
+        when(ruleValidator.validateRule(eq("COND_WITH_GROUP"), eq(dummyRawInfo), anyList()))
                 .thenReturn(Collections.singletonList(dummyResult));
 
         // 呼叫被測方法
@@ -82,8 +83,7 @@ class RunCardParserServiceTest {
 
         // 期望有 2 筆結果 (一個對應 conditionNoGroup、一個對應 conditionWithGroup)
         assertEquals(2, results.size());
-
-        // Condition 1 應為 no-group result
+        // Condition 1 => no-group
         Optional<OneConditionToolRuleGroupResult> noGroupOpt = results.stream()
                 .filter(r -> "COND_NO_GROUP".equals(r.getCondition()))
                 .findFirst();
@@ -97,7 +97,7 @@ class RunCardParserServiceTest {
         assertEquals(0, noGroupInfo.getResult());
         assertEquals("No group matched for this condition", noGroupInfo.getDetail().get("msg"));
 
-        // Condition 2 應返回 ruleA result
+        // Condition 2 => ruleA=1
         Optional<OneConditionToolRuleGroupResult> withGroupOpt = results.stream()
                 .filter(r -> "COND_WITH_GROUP".equals(r.getCondition()))
                 .findFirst();
@@ -179,9 +179,6 @@ class RunCardParserServiceTest {
         Map<String, Object> detailA = new HashMap<>();
         detailA.put("msg", "Pass from GroupA");
         dummyResultA.setDetail(detailA);
-        when(ruleValidator.validateRule(eq(dummyRawInfo), argThat(rules ->
-                rules != null && !rules.isEmpty() && "ruleA".equals(rules.getFirst().getRuleType())
-        ))).thenReturn(Collections.singletonList(dummyResultA));
 
         ResultInfo dummyResultB = new ResultInfo();
         dummyResultB.setRuleType("ruleB");
@@ -189,7 +186,14 @@ class RunCardParserServiceTest {
         Map<String, Object> detailB = new HashMap<>();
         detailB.put("msg", "Pass from GroupB");
         dummyResultB.setDetail(detailB);
-        when(ruleValidator.validateRule(eq(dummyRawInfo), argThat(rules ->
+
+        // 當呼叫 validateRule("COND1", dummyRuncard, [ruleA]) => 回傳 dummyResultA
+        when(ruleValidator.validateRule(eq("COND1"), eq(dummyRawInfo), argThat(rules ->
+                rules != null && !rules.isEmpty() && "ruleA".equals(rules.getFirst().getRuleType())
+        ))).thenReturn(Collections.singletonList(dummyResultA));
+
+        // 當呼叫 validateRule("COND1", dummyRawInfo, [ruleB]) => 回傳 dummyResultB
+        when(ruleValidator.validateRule(eq("COND1"), eq(dummyRawInfo), argThat(rules ->
                 rules != null && !rules.isEmpty() && "ruleB".equals(rules.getFirst().getRuleType())
         ))).thenReturn(Collections.singletonList(dummyResultB));
 
@@ -200,7 +204,7 @@ class RunCardParserServiceTest {
         assertEquals(2, results.size());
 
         // 驗證第一筆 (mappingInfoDup1)
-        OneConditionToolRuleGroupResult result1 = results.getFirst();
+        OneConditionToolRuleGroupResult result1 = results.get(0);
         assertEquals("COND1", result1.getCondition());
         assertEquals(Collections.singletonList("Tool1#A"), result1.getToolChambers());
         assertNotNull(result1.getResults());

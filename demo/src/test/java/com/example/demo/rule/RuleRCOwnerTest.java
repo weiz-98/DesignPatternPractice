@@ -20,8 +20,9 @@ class RuleRCOwnerTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.emptyList());
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check(rc, rule);
+        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
@@ -33,8 +34,9 @@ class RuleRCOwnerTest {
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-ABC");
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check(rc, rule);
+        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
@@ -43,12 +45,13 @@ class RuleRCOwnerTest {
     @Test
     void check_noSettings() {
         Rule rule = new Rule();
-        rule.setLotType(List.of("Prod"));  // 先設 "Prod"
+        rule.setLotType(List.of("Prod"));
         rule.setSettings(null);
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-123");
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check(rc, rule);
+        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("No settings => skip check", info.getDetail().get("msg"));
@@ -71,8 +74,9 @@ class RuleRCOwnerTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-123");
         rc.setIssuingEngineer("ENG-A");
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check(rc, rule);
+        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(2, info.getResult());
         assertEquals("ENG-A", info.getDetail().get("issuingEngineer"));
@@ -104,15 +108,18 @@ class RuleRCOwnerTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-999"); // => startWithTM=false => containProd => shouldCheck= false => pass
         rc.setIssuingEngineer("ENG-X");
+        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check(rc, rule);
+        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult());
         assertEquals("ENG-X", info.getDetail().get("issuingEngineer"));
+
         List<String> empIds = (List<String>) info.getDetail().get("configuredRCOwnerEmployeeId");
         assertTrue(empIds.contains("ENG-A"));
         assertTrue(empIds.contains("ENG-B"));
         assertFalse(empIds.contains("ENG-X"));
+
         List<String> sec = (List<String>) info.getDetail().get("configuredRCOwnerOrg");
         assertEquals("sectionX", sec.getFirst());
     }

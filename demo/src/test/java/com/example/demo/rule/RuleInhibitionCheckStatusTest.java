@@ -35,9 +35,10 @@ class RuleInhibitionCheckStatusTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.emptyList());
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
         rc.setPartId("anything");
 
-        ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
@@ -49,9 +50,10 @@ class RuleInhibitionCheckStatusTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
 
-        ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
@@ -63,10 +65,11 @@ class RuleInhibitionCheckStatusTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
         rc.setPartId("XX-999");
         when(dataLoaderService.getInhibitionCheckStatus()).thenReturn(Collections.emptyList());
 
-        ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult());
         assertEquals("No InhibitionCheckStatus data => skip", info.getDetail().get("error"));
@@ -78,6 +81,7 @@ class RuleInhibitionCheckStatusTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
         rc.setPartId("XX-123");
 
         List<InhibitionCheckStatus> mockList = List.of(
@@ -86,7 +90,7 @@ class RuleInhibitionCheckStatusTest {
         );
         when(dataLoaderService.getInhibitionCheckStatus()).thenReturn(mockList);
 
-        ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult(), "all Y => lamp=1");
         assertEquals(true, info.getDetail().get("inhibitionCheck"));
@@ -98,6 +102,7 @@ class RuleInhibitionCheckStatusTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
         rc.setPartId("XX-ABC");
 
         List<InhibitionCheckStatus> mockList = List.of(
@@ -107,7 +112,7 @@ class RuleInhibitionCheckStatusTest {
         );
         when(dataLoaderService.getInhibitionCheckStatus()).thenReturn(mockList);
 
-        ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
 
         assertEquals(2, info.getResult());
         assertEquals(false, info.getDetail().get("inhibitionCheck"));
