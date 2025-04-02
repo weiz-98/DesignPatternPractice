@@ -29,15 +29,21 @@ public class RuleWaferCondition implements IRuleCheck {
             return info;
         }
 
-        if (RuleUtil.shouldCheckLotType(runcardRawInfo, rule)) {
+        if (RuleUtil.isLotTypeInvalidity(runcardRawInfo, rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
             return info;
         }
 
         WaferCondition wc = dataLoaderService.getWaferCondition();
-        int uniqueCount = parseIntSafe(wc.getUniqueCount());
-        int wfrQty = parseIntSafe(wc.getWfrQty());
+        if (wc == null) {
+            info.setResult(3);
+            info.setDetail(Collections.singletonMap("error", "No WaferCondition data => skip"));
+            return info;
+        }
+
+        int uniqueCount = RuleUtil.parseIntSafe(wc.getUniqueCount());
+        int wfrQty = RuleUtil.parseIntSafe(wc.getWfrQty());
 
         boolean isEqual = (uniqueCount == wfrQty);
         int lamp = isEqual ? 1 : 3;
@@ -52,14 +58,5 @@ public class RuleWaferCondition implements IRuleCheck {
         info.setDetail(detailMap);
 
         return info;
-    }
-
-    private int parseIntSafe(String s) {
-        if (s == null) return 0;
-        try {
-            return Integer.parseInt(s);
-        } catch (NumberFormatException ex) {
-            return 0;
-        }
     }
 }

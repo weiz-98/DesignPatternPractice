@@ -27,7 +27,7 @@ public class RuleRCOwner implements IRuleCheck {
             return info;
         }
 
-        if (RuleUtil.shouldCheckLotType(runcardRawInfo, rule)) {
+        if (RuleUtil.isLotTypeInvalidity(runcardRawInfo, rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
             return info;
@@ -40,7 +40,7 @@ public class RuleRCOwner implements IRuleCheck {
             return info;
         }
 
-        Map<String, String> namesMap = parseStringMap(settings.get("names"));
+        Map<String, String> namesMap = RuleUtil.parseStringMap(settings.get("names"));
         List<String> employeeIds = new ArrayList<>(namesMap.values());
         List<String> employeeNames = new ArrayList<>(namesMap.keySet());
 
@@ -48,7 +48,7 @@ public class RuleRCOwner implements IRuleCheck {
         boolean found = employeeIds.contains(issuingEngineer);
         int lamp = found ? 2 : 1;
 
-        Map<String, String> sectionsMap = parseStringMap(settings.get("sections"));
+        Map<String, String> sectionsMap = RuleUtil.parseStringMap(settings.get("sections"));
         List<String> sectionNames = new ArrayList<>(sectionsMap.keySet());
 
         Map<String, Object> detailMap = Map.of(
@@ -65,16 +65,4 @@ public class RuleRCOwner implements IRuleCheck {
         return info;
     }
 
-    @SuppressWarnings("unchecked")
-    private Map<String, String> parseStringMap(Object obj) {
-        if (obj instanceof Map) {
-            try {
-                return (Map<String, String>) obj;
-            } catch (ClassCastException ex) {
-                log.warn("parseStringMap cast fail, obj={}", obj);
-                return Collections.emptyMap();
-            }
-        }
-        return Collections.emptyMap();
-    }
 }

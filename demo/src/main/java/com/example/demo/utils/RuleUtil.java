@@ -2,16 +2,15 @@ package com.example.demo.utils;
 
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
+import lombok.extern.slf4j.Slf4j;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
+@Slf4j
 public class RuleUtil {
 
-    private RuleUtil() {}
-
-    /**
-     * 判斷 lotType 是否為空 (null 或空清單).
-     */
     public static boolean isLotTypeEmpty(Rule rule) {
         List<String> lotTypeList = rule.getLotType();
         return lotTypeList == null || lotTypeList.isEmpty();
@@ -24,7 +23,7 @@ public class RuleUtil {
      * - 若包含 "C/W" => partId 前兩字不是 "TM" 才檢查
      * - 若同時包含 "Prod" 與 "C/W" => 只要符合其中一種即可檢查
      */
-    public static boolean shouldCheckLotType(RuncardRawInfo runcardRawInfo, Rule rule) {
+    public static boolean isLotTypeInvalidity(RuncardRawInfo runcardRawInfo, Rule rule) {
         if (isLotTypeEmpty(rule)) {
             return false; // lotType 為空 => 不檢查
         }
@@ -37,7 +36,7 @@ public class RuleUtil {
         boolean startsWithTM = partId.startsWith("TM");
 
         boolean containsProd = lotTypeList.contains("Prod");
-        boolean containsCW   = lotTypeList.contains("C/W");
+        boolean containsCW = lotTypeList.contains("C/W");
 
         boolean shouldCheck = containsProd && startsWithTM;
 
@@ -46,5 +45,53 @@ public class RuleUtil {
         }
 
         return shouldCheck;
+    }
+
+    public static int parseIntSafe(Object obj) {
+        if (obj instanceof Number) {
+            return ((Number) obj).intValue();
+        }
+        if (obj instanceof String) {
+            try {
+                return Integer.parseInt((String) obj);
+            } catch (NumberFormatException ignore) {
+            }
+        }
+        return 0;
+    }
+
+    public static boolean parseBooleanSafe(Object obj) {
+        if (obj instanceof Boolean) {
+            return (Boolean) obj;
+        }
+        if (obj instanceof String) {
+            return Boolean.parseBoolean((String) obj);
+        }
+        return false;
+    }
+
+    @SuppressWarnings("unchecked")
+    public static List<String> parseStringList(Object obj) {
+        if (obj instanceof List) {
+            try {
+                return (List<String>) obj;
+            } catch (ClassCastException ex) {
+                log.warn("parseStringList cast fail, obj={}", obj);
+            }
+        }
+        return Collections.emptyList();
+    }
+
+    @SuppressWarnings("unchecked")
+    public static Map<String, String> parseStringMap(Object obj) {
+        if (obj instanceof Map) {
+            try {
+                return (Map<String, String>) obj;
+            } catch (ClassCastException ex) {
+                log.warn("parseStringMap cast fail, obj={}", obj);
+                return Collections.emptyMap();
+            }
+        }
+        return Collections.emptyMap();
     }
 }

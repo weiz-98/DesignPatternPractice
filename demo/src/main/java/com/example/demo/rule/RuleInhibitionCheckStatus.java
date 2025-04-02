@@ -30,7 +30,7 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
             return info;
         }
 
-        if (RuleUtil.shouldCheckLotType(runcardRawInfo, rule)) {
+        if (RuleUtil.isLotTypeInvalidity(runcardRawInfo, rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
             return info;
@@ -38,8 +38,8 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
 
         List<InhibitionCheckStatus> list = dataLoaderService.getInhibitionCheckStatus();
         if (list.isEmpty()) {
-            info.setResult(0);
-            info.setDetail(Collections.singletonMap("msg", "No InhibitionCheckStatus => skip"));
+            info.setResult(3);
+            info.setDetail(Collections.singletonMap("error", "No InhibitionCheckStatus data => skip"));
             return info;
         }
 

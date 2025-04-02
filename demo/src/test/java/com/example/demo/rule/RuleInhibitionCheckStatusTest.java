@@ -30,65 +30,80 @@ class RuleInhibitionCheckStatusTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    /**
+     * 情境 (A):
+     * lotType 為空 => skip => result=0, "lotType is empty => skip check"
+     * 不會呼叫 dataLoaderService.getInhibitionCheckStatus()
+     */
     @Test
     void check_lotTypeEmpty() {
-        // given lotType 為空 => skip
         Rule rule = new Rule();
+        // lotType=null 或空 => skip
         rule.setLotType(Collections.emptyList());
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("anything"); // 不重要, 反正lotTypeEmpty先攔
 
-        // when
         ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
 
-        // then
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
-        // 不會呼叫 dataLoaderService
         verify(dataLoaderService, never()).getInhibitionCheckStatus();
     }
 
+    /**
+     * 情境 (B):
+     * shouldCheckLotType(...)=true => skip => "lotType mismatch => skip check"
+     * => 只要 "Prod" + partId= "TM-something" => code => return true => skip
+     */
     @Test
     void check_shouldCheckLotTypeTrue() {
-        // scenario: lotType=["Prod"], 但 partId="XX-123" => RuleUtil.shouldCheckLotType(...)=true => skip
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123"); // partId 不以 TM 開頭 => mismatch => skip
+        // 讓 partId= "TM-123" => containProd && startsWithTM => true => skip
+        rc.setPartId("TM-123");
 
-        // when
         ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
 
-        // then
-        assertEquals(0, info.getResult());
+        assertEquals(0, info.getResult(), "若shouldCheckLotType=>true => skip=>0");
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
         verify(dataLoaderService, never()).getInhibitionCheckStatus();
     }
 
+    /**
+     * 情境 (C): dataLoaderService回傳空 => skip => "No InhibitionCheckStatus => skip"
+     * 要繼續到 dataLoaderService=> 先確保 shouldCheckLotType(...)=false => "不skip"
+     * => e.g. lotType=["Prod"], partId="XX-999" => startsWithTM=false => containProd=true => => false => 不skip => next step
+     */
     @Test
     void check_noInhibitionCheckData() {
-        // lotType=["Prod"], partId="TM-ABC" => pass => 會呼叫 getInhibitionCheckStatus()
-        // 但回傳空 => skip
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC");
+        // partId="XX-999" => startsWithTM=false & containProd=true => => shouldCheck= false => 不skip => 往下
+        rc.setPartId("XX-999");
 
+        // mock dataLoader => 回傳空
         when(dataLoaderService.getInhibitionCheckStatus()).thenReturn(Collections.emptyList());
 
         ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
 
-        assertEquals(0, info.getResult());
-        assertEquals("No InhibitionCheckStatus => skip", info.getDetail().get("msg"));
+        assertEquals(3, info.getResult());
+        assertEquals("No InhibitionCheckStatus data => skip", info.getDetail().get("error"));
         verify(dataLoaderService, times(1)).getInhibitionCheckStatus();
     }
 
+    /**
+     * 情境 (D): allY => lamp=1(綠)
+     * => 先不skip => lotType=["Prod"], partId="XX" => shouldCheck= false =>繼續
+     * => dataLoaderService => all Y => 1
+     */
     @Test
     void check_allY() {
-        // 所有 are "Y" => lamp=1 (綠)
         Rule rule = new Rule();
-        rule.setLotType(List.of("Prod")); // => 不skip
+        rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC");          // => shouldCheckLotType= false => 繼續
+        rc.setPartId("XX-123");  // startsWithTM=false => containProd=true => => false => 不skip
 
         List<InhibitionCheckStatus> mockList = List.of(
                 new InhibitionCheckStatus("Y"),
@@ -103,13 +118,16 @@ class RuleInhibitionCheckStatusTest {
         verify(dataLoaderService, times(1)).getInhibitionCheckStatus();
     }
 
+    /**
+     * 情境 (E): anyN => lamp=2(黃)
+     */
     @Test
     void check_anyN() {
-        // 若任何一筆是 N => lamp=2 (黃)
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC");
+        // same reason => partId="XX" => not skip => continue
+        rc.setPartId("XX-ABC");
 
         List<InhibitionCheckStatus> mockList = List.of(
                 new InhibitionCheckStatus("Y"),
@@ -120,7 +138,7 @@ class RuleInhibitionCheckStatusTest {
 
         ResultInfo info = ruleInhibitionCheckStatus.check(rc, rule);
 
-        assertEquals(2, info.getResult());
+        assertEquals(2, info.getResult(), "只要有N => lamp=2(黃)");
         assertEquals(false, info.getDetail().get("inhibitionCheck"));
         verify(dataLoaderService, times(1)).getInhibitionCheckStatus();
     }

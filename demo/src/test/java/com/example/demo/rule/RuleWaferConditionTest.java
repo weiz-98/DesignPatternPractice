@@ -29,65 +29,70 @@ class RuleWaferConditionTest {
         MockitoAnnotations.openMocks(this);
     }
 
+    /**
+     * (1) lotType 為空 => skip
+     */
     @Test
     void check_lotTypeEmpty() {
-        // 準備：lotType 為空 => 期望跳過
         Rule rule = new Rule();
-        rule.setLotType(Collections.emptyList()); // 空
+        // lotType=null 或 empty => skip
+        rule.setLotType(Collections.emptyList());
         RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("whatever");
 
-        // 執行
         ResultInfo result = ruleWaferCondition.check(rc, rule);
 
-        // 驗證
         assertEquals(0, result.getResult(), "若 lotType 為空 => result=0");
         assertEquals("lotType is empty => skip check", result.getDetail().get("msg"));
-        // 不會呼叫 dataLoaderService.getWaferCondition()
         verify(dataLoaderService, never()).getWaferCondition();
     }
 
+    /**
+     * (2) shouldCheckLotType(...) => true => skip => "lotType mismatch => skip check"
+     * <p>
+     * 根據現行實作:
+     * boolean shouldCheck = (containsProd && startsWithTM)
+     * if (containsCW && !startsWithTM) => shouldCheck=true
+     * 最後 if(shouldCheck) => skip
+     * <p>
+     * 因此, 若 lotType=["Prod"], partId以"TM"開頭 => shouldCheckLotType(...)=true => skip
+     */
     @Test
     void check_shouldCheckLotTypeTrue() {
-        // 模擬: lotType 不空，但 RuleUtil.shouldCheckLotType(...) 回傳 true => skip
-        // 這裡要 mock RuleUtil.shouldCheckLotType(...) => 因為是靜態方法 => 無法直接用 Mockito 去 stub
-        // => 只能在 partId 設置讓 shouldCheckLotType(...) 返回 true
-        // shouldCheckLotType(...) 內邏輯：只要 partId開頭=TM, lotType=C/W => false, or 反之 => true
-        // 要做成 "Prod" + partId=XX => skip
         Rule rule = new Rule();
-        rule.setLotType(Collections.singletonList("Prod"));
+        rule.setLotType(Collections.singletonList("Prod")); // containsProd=true
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123"); // 不符合 Prod => shouldCheckLotType(...)=true => skip
+        rc.setPartId("TM-123"); // startsWithTM=true => shouldCheck=true => skip
 
-        // 執行
         ResultInfo result = ruleWaferCondition.check(rc, rule);
 
-        // 驗證
         assertEquals(0, result.getResult());
         assertEquals("lotType mismatch => skip check", result.getDetail().get("msg"));
-        // 同理不會呼叫 getWaferCondition()
         verify(dataLoaderService, never()).getWaferCondition();
     }
 
+    /**
+     * (3) waferCondition_equal => 需先不skip => 代表 shouldCheckLotType(...)= false
+     * => e.g. lotType=["Prod"], partId="XX-ABC" => startsWithTM=false & containProd=true => => false => 繼續
+     * => dataLoaderService => uniqueCount=wfrQty => lamp=1(綠)
+     */
     @Test
     void check_waferCondition_equal() {
-        // lotType 不空, 且 shouldCheckLotType(...) 返回 false => 可以繼續檢查
-        // Mock dataLoaderService.getWaferCondition() => uniqueCount=100, wfrQty=100 => 綠燈(1)
         Rule rule = new Rule();
-        rule.setLotType(Collections.singletonList("Prod")); // partId=TM => pass
+        rule.setLotType(Collections.singletonList("Prod")); // 只要 partId 不以"TM"開頭 => false
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC"); // => shouldCheckLotType(...)=false
+        rc.setPartId("XX-ABC"); // startsWithTM=false => containProd=true => => false => 繼續
 
-        WaferCondition mockWf = new WaferCondition();
-        mockWf.setUniqueCount("100");
-        mockWf.setWfrQty("100");
+        // mock dataLoader => uniqueCount=100, wfrQty=100
+        WaferCondition wf = new WaferCondition();
+        wf.setUniqueCount("100");
+        wf.setWfrQty("100");
+        when(dataLoaderService.getWaferCondition()).thenReturn(wf);
 
-        when(dataLoaderService.getWaferCondition()).thenReturn(mockWf);
-
-        // 執行
         ResultInfo result = ruleWaferCondition.check(rc, rule);
 
-        // 驗證
         assertEquals(1, result.getResult(), "uniqueCount == wfrQty => 綠燈(1)");
+        // waferCondition=true
         assertEquals(true, result.getDetail().get("waferCondition"));
         assertEquals("100", String.valueOf(result.getDetail().get("wfrQty")));
         assertEquals("100", String.valueOf(result.getDetail().get("experimentQty")));
@@ -95,28 +100,48 @@ class RuleWaferConditionTest {
         verify(dataLoaderService, times(1)).getWaferCondition();
     }
 
+    /**
+     * (4) waferCondition_notEqual => lamp=3(紅)
+     */
     @Test
     void check_waferCondition_notEqual() {
-        // 模擬 uniqueCount != wfrQty => 紅燈(3)
         Rule rule = new Rule();
         rule.setLotType(Collections.singletonList("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC");
+        rc.setPartId("XX-999"); // => startsWithTM=false => containProd=true => => false => 繼續
 
-        WaferCondition mockWf = new WaferCondition();
-        mockWf.setUniqueCount("50");
-        mockWf.setWfrQty("100");
+        // mock dataLoader => uniqueCount != wfrQty => lamp=3
+        WaferCondition wf = new WaferCondition();
+        wf.setUniqueCount("50");
+        wf.setWfrQty("100");
+        when(dataLoaderService.getWaferCondition()).thenReturn(wf);
 
-        when(dataLoaderService.getWaferCondition()).thenReturn(mockWf);
-
-        // 執行
         ResultInfo result = ruleWaferCondition.check(rc, rule);
 
-        // 驗證
-        assertEquals(3, result.getResult());
+        assertEquals(3, result.getResult(), "uniqueCount != wfrQty => 紅燈(3)");
         assertEquals(false, result.getDetail().get("waferCondition"));
         assertEquals("50", String.valueOf(result.getDetail().get("experimentQty")));
         assertEquals("100", String.valueOf(result.getDetail().get("wfrQty")));
+
+        verify(dataLoaderService, times(1)).getWaferCondition();
+    }
+
+    @Test
+    void check_noWaferConditionData() {
+        Rule rule = new Rule();
+        // 讓lotType不空 & shouldCheckLotType(...)= false => partId="XX"
+        rule.setLotType(Collections.singletonList("Prod"));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("XX-123");
+
+        // mock回傳 null
+        when(dataLoaderService.getWaferCondition()).thenReturn(null);
+
+        ResultInfo result = ruleWaferCondition.check(rc, rule);
+
+        // 驗證 => 紅燈(3), detail => error=No WaferCondition data => skip
+        assertEquals(3, result.getResult(), "若 waferCondition=null => 紅燈(3)");
+        assertEquals("No WaferCondition data => skip", result.getDetail().get("error"));
 
         verify(dataLoaderService, times(1)).getWaferCondition();
     }
