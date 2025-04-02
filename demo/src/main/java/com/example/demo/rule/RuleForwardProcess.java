@@ -7,11 +7,13 @@ import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class RuleForwardProcess implements IRuleCheck {
@@ -20,26 +22,21 @@ public class RuleForwardProcess implements IRuleCheck {
 
     @Override
     public ResultInfo check(RuncardRawInfo runcardRawInfo, Rule rule) {
-        // 建立回傳用
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        // 1) 檢查 lotType 為空 => skip
         if (RuleUtil.isLotTypeEmpty(rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType is empty => skip check"));
             return info;
         }
 
-        // 2) 檢查是否要檢查 (partId & lotType)
-        //   若 shouldCheckLotType(...) 回傳 true，表示不符合，需 skip
-        if (RuleUtil.shouldCheckLotType(runcardRawInfo, rule)) {
+        if (RuleUtil.isLotTypeMismatch(runcardRawInfo, rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
             return info;
         }
 
-        // 3) 檢查 settings
         Map<String, Object> settings = rule.getSettings();
         if (settings == null) {
             info.setResult(0);
@@ -47,18 +44,15 @@ public class RuleForwardProcess implements IRuleCheck {
             return info;
         }
 
-        // 3.1) 解析設定
-        int forwardSteps = parseIntSafe(settings.get("forwardSteps")); // 預設3
-        boolean includeMeasurement = parseBooleanSafe(settings.get("includeMeasurement"));
-        List<String> recipeIds = parseStringList(settings.get("recipeIds"));
-        List<String> toolIds = parseStringList(settings.get("toolIds"));
+        int forwardSteps = RuleUtil.parseIntSafe(settings.get("forwardSteps"));
+        boolean includeMeasurement = RuleUtil.parseBooleanSafe(settings.get("includeMeasurement"));
+        List<String> recipeIds = RuleUtil.parseStringList(settings.get("recipeIds"));
+        List<String> toolIds = RuleUtil.parseStringList(settings.get("toolIds"));
 
-        // 4) 從 dataLoaderService / ruleDao 取得 ForwardProcess
         List<ForwardProcess> allForward = dataLoaderService.getForwardProcess();
         if (allForward.isEmpty()) {
-            // 沒有任何 ForwardProcess => 可能直接視為 skip / 或綠燈
-            info.setResult(0);
-            info.setDetail(Collections.singletonMap("msg", "No ForwardProcess => skip"));
+            info.setResult(3);
+            info.setDetail(Collections.singletonMap("error", "No ForwardProcess data => skip"));
             return info;
         }
 
@@ -75,32 +69,21 @@ public class RuleForwardProcess implements IRuleCheck {
             filtered = new ArrayList<>(limitedList);
         }
 
-        // 5) 檢查 recipeId, toolId
-        //   只要有一筆不符合 => 紅燈(3)
-        boolean pass = true;
-        for (ForwardProcess fp : filtered) {
-            // 檢查 recipeId
-            if (!checkRecipeId(fp.getRecipeId(), recipeIds)) {
-                pass = false;
-                break;
-            }
-            // 檢查 toolId
-            if (!checkToolId(fp.getToolId(), toolIds)) {
-                pass = false;
-                break;
-            }
-        }
+        // 5) 分開檢查 recipe 與 tool
+        boolean passRecipe = checkRecipePatterns(filtered, recipeIds);
+        boolean passTool = checkToolPatterns(filtered, toolIds);
 
-        int lamp = pass ? 1 : 3; // 通過 => 綠(1)，否則紅(3)
+        boolean pass = passRecipe && passTool;
+        int lamp = pass ? 1 : 3;
 
-        // 組裝 detail
+        // detail
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("result", lamp);
         detailMap.put("forwardSteps", forwardSteps);
         detailMap.put("includedMeasurement", includeMeasurement);
         detailMap.put("configuredToolIdList", toolIds);
         detailMap.put("configuredRecipeIdList", recipeIds);
-        // 取出留下的 ForwardProcess 的 recipeId / toolId
+
         List<String> forwardToolIds = filtered.stream()
                 .map(ForwardProcess::getToolId)
                 .collect(Collectors.toList());
@@ -116,92 +99,53 @@ public class RuleForwardProcess implements IRuleCheck {
     }
 
     /**
-     * 若 settings.get("forwardSteps") 是整數 => 回傳該值，否則回傳預設 defaultVal
+     * 對於 recipeIds 裡的每個 pattern：
+     * - 若 pattern 以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 包含該 partial 即可
+     * - 若 pattern 不以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 完全等於該 pattern 即可
+     * 若找不到 => fail
+     * 需全部 pattern 都有找到對應 => pass
      */
-    private int parseIntSafe(Object obj) {
-        if (obj instanceof Number) {
-            return ((Number) obj).intValue();
-        }
-        if (obj instanceof String) {
-            try {
-                return Integer.parseInt((String) obj);
-            } catch (NumberFormatException ignore) {
-            }
-        }
-        return 3;
-    }
-
-    /**
-     * 若 settings.get("includeMeasurement") 是 boolean => 直接回傳
-     * 若是字串 "true"/"false" => 轉成 boolean
-     * 否則回傳 defaultVal
-     */
-    private boolean parseBooleanSafe(Object obj) {
-        if (obj instanceof Boolean) {
-            return (Boolean) obj;
-        }
-        if (obj instanceof String) {
-            return Boolean.parseBoolean((String) obj);
-        }
-        return false;
-    }
-
-    /**
-     * 解析成 List<String>。若不是 List => 回傳空
-     */
-    @SuppressWarnings("unchecked")
-    private List<String> parseStringList(Object obj) {
-        if (obj instanceof List) {
-            try {
-                return (List<String>) obj;
-            } catch (ClassCastException ex) {
-                // 可視需求log.warn
-            }
-        }
-        return Collections.emptyList();
-    }
-
-    /**
-     * 檢查 forwardProcess.recipeId 是否符合 recipeIds 內每個 pattern。
-     * - 若 pattern 以 '%' 開頭 => 表示只要 recipeId contains 去掉 '%' 的部份 即可通過
-     * - 否則表示 recipeId 必須包含該 pattern 全字串
-     * 若包含多個 pattern => 每個都要通過 => 回傳 true，否則 false
-     */
-    private boolean checkRecipeId(String actualRecipeId, List<String> recipeIds) {
-        // 若 config 中沒指定任何 recipeIds => 視需求決定
-        // 這裡假設「沒指定 => 不檢查 => pass」
-        if (recipeIds.isEmpty()) return true;
-
-        // 需要檢查
-        for (String pattern : recipeIds) {
+    private boolean checkRecipePatterns(List<ForwardProcess> filteredForwardProcesses, List<String> configuredRecipeIds) {
+        for (String pattern : configuredRecipeIds) {
+            boolean matchedThisPattern = false;
             if (pattern.startsWith("%")) {
-                // 部分匹配 => actualRecipeId.contains(pattern.substring(1))
                 String partial = pattern.substring(1);
-                if (!actualRecipeId.contains(partial)) {
-                    return false; // 不符 => fail
+                for (ForwardProcess fp : filteredForwardProcesses) {
+                    if (fp.getRecipeId() != null && fp.getRecipeId().contains(partial)) {
+                        matchedThisPattern = true;
+                        break;
+                    }
                 }
             } else {
-                // 全字串 => actualRecipeId 必須包含 pattern
-                if (!actualRecipeId.contains(pattern)) {
-                    return false;
+                for (ForwardProcess fp : filteredForwardProcesses) {
+                    if (pattern.equals(fp.getRecipeId())) {
+                        matchedThisPattern = true;
+                        break;
+                    }
                 }
             }
+
+            if (!matchedThisPattern) {
+                return false;
+            }
         }
-        // 都符合 => true
         return true;
     }
 
     /**
-     * 檢查 forwardProcess.toolId 是否必須包含 toolIds 裡面所有元素(完整字串)。
-     * "每個元素的 toolId 需有包含 toolIds 裡面所有元素的全名"
-     * => actualToolId 必須對所有 configTool 都 .contains()
+     * toolIds 裡的每個 pattern => 需在 filteredForwardProcesses 中找到至少一筆 toolId==pattern
+     * 若找不到 => fail
      */
-    private boolean checkToolId(String actualToolId, List<String> configTools) {
-        if (configTools.isEmpty()) {
-            return true; // 沒指定 => pass
-        }
-        for (String t : configTools) {
-            if (!actualToolId.contains(t)) {
+    private boolean checkToolPatterns(List<ForwardProcess> filteredForwardProcesses, List<String> configuredToolIds) {
+        for (String neededTool : configuredToolIds) {
+            boolean matchedThis = false;
+            for (ForwardProcess fp : filteredForwardProcesses) {
+                if (neededTool.equals(fp.getToolId())) {
+                    matchedThis = true;
+                    break;
+                }
+            }
+            if (!matchedThis) {
                 return false;
             }
         }
