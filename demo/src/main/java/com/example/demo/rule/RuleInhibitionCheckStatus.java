@@ -30,7 +30,7 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
             return info;
         }
 
-        if (RuleUtil.isLotTypeInvalidity(runcardRawInfo, rule)) {
+        if (RuleUtil.isLotTypeMismatch(runcardRawInfo, rule)) {
             info.setResult(0);
             info.setDetail(Collections.singletonMap("msg", "lotType mismatch => skip check"));
             return info;

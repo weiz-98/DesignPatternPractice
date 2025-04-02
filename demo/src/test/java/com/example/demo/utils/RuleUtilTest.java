@@ -17,7 +17,7 @@ class RuleUtilTest {
         // 當 lotType = null
         Rule rule = new Rule();
         rule.setLotType(null);
-        assertTrue(RuleUtil.isLotTypeEmpty(rule), "lotType 為 null 應視為 empty");
+        assertTrue(RuleUtil.isLotTypeEmpty(rule));
     }
 
     @Test
@@ -25,7 +25,7 @@ class RuleUtilTest {
         // 當 lotType = []
         Rule rule = new Rule();
         rule.setLotType(Collections.emptyList());
-        assertTrue(RuleUtil.isLotTypeEmpty(rule), "lotType 為空集合應視為 empty");
+        assertTrue(RuleUtil.isLotTypeEmpty(rule));
     }
 
     @Test
@@ -33,7 +33,7 @@ class RuleUtilTest {
         // 當 lotType = ["Prod"]
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
-        assertFalse(RuleUtil.isLotTypeEmpty(rule), "lotType 不為空集合");
+        assertFalse(RuleUtil.isLotTypeEmpty(rule));
     }
 
     @Test
@@ -44,8 +44,7 @@ class RuleUtilTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.emptyList());
 
-        assertFalse(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "lotType 為空時應該回傳 false => 不檢查");
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
@@ -56,8 +55,7 @@ class RuleUtilTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod")); // 有值
 
-        assertFalse(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "partId 為 null 時應該回傳 false => 不檢查");
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
@@ -68,8 +66,7 @@ class RuleUtilTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
 
-        assertTrue(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "包含 Prod + partId 前兩字 'TM' => 應該檢查 => true");
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
@@ -80,8 +77,7 @@ class RuleUtilTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
 
-        assertFalse(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "只有 Prod 但 partId 不以 'TM' 開頭 => false");
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
@@ -92,8 +88,7 @@ class RuleUtilTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("C/W"));
 
-        assertFalse(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "只有 C/W 但 partId 開頭是 'TM' => false");
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
@@ -104,8 +99,7 @@ class RuleUtilTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("C/W"));
 
-        assertTrue(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "只有 C/W 且 partId 不以 'TM' 開頭 => true");
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
@@ -118,12 +112,10 @@ class RuleUtilTest {
         rule.setLotType(List.of("Prod", "C/W"));
 
         // partId 以 "TM" 開頭 => 符合 Prod => 應該 true
-        assertTrue(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "同時包含 Prod & C/W，partId 開頭 'TM' => 符合 Prod => true");
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
 
         // 若換成 partId = "XX-999"，就只符合 C/W => 也應該 true
         rc.setPartId("XX-999");
-        assertTrue(RuleUtil.isLotTypeInvalidity(rc, rule),
-                "同時包含 Prod & C/W，partId 不以 'TM' => 符合 C/W => true");
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 }

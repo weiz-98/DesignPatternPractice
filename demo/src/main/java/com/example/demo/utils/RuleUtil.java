@@ -5,6 +5,7 @@ import com.example.demo.vo.RuncardRawInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +24,7 @@ public class RuleUtil {
      * - 若包含 "C/W" => partId 前兩字不是 "TM" 才檢查
      * - 若同時包含 "Prod" 與 "C/W" => 只要符合其中一種即可檢查
      */
-    public static boolean isLotTypeInvalidity(RuncardRawInfo runcardRawInfo, Rule rule) {
+    public static boolean isLotTypeMismatch(RuncardRawInfo runcardRawInfo, Rule rule) {
         if (isLotTypeEmpty(rule)) {
             return false; // lotType 為空 => 不檢查
         }
@@ -82,15 +83,37 @@ public class RuleUtil {
         return Collections.emptyList();
     }
 
+    /**
+     * 若輸入是 List<?>，且裡面每個元素都是 Map<String,String>，則將它們合併成一個大 Map，回傳
+     * 若輸入直接就是 Map<String,String>，則直接轉型
+     */
     @SuppressWarnings("unchecked")
     public static Map<String, String> parseStringMap(Object obj) {
+        // 1) 若本來就是 Map => 直接轉
         if (obj instanceof Map) {
             try {
                 return (Map<String, String>) obj;
             } catch (ClassCastException ex) {
-                log.warn("parseStringMap cast fail, obj={}", obj);
+                log.warn("[parseStringMap] cast fail. obj={}", obj, ex);
                 return Collections.emptyMap();
             }
+        }
+
+        if (obj instanceof List<?> lst) {
+            Map<String, String> combined = new LinkedHashMap<>();
+            for (Object item : lst) {
+                if (item instanceof Map) {
+                    try {
+                        Map<String, String> mapItem = (Map<String, String>) item;
+                        combined.putAll(mapItem);
+                    } catch (ClassCastException ex) {
+                        log.warn("[parseStringMap] list item cast fail, item={}", item, ex);
+                    }
+                } else {
+                    log.warn("[parseStringMap] list item is not a Map, item={}", item);
+                }
+            }
+            return combined;
         }
         return Collections.emptyMap();
     }
