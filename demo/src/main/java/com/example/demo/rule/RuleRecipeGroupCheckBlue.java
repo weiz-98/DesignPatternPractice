@@ -2,8 +2,8 @@ package com.example.demo.rule;
 
 import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.DataLoaderService;
-import com.example.demo.utils.ParsingUtil;
 import com.example.demo.utils.RuleUtil;
+import com.example.demo.utils.ToolChamberUtil;
 import com.example.demo.vo.RecipeGroupsAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
@@ -91,14 +91,14 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
             return info;
         }
 
-        // 假設先以第 1 筆做檢查
+        // 這邊按理來說只會有一筆(mapping 到指定的 condition)
         RecipeGroupsAndToolInfo rgtInfo = filteredGroups.getFirst();
         String toolIdListStr = rgtInfo.getToolIdList();  // e.g. "JDTM16,JDTM17,JDTM20"
         String recipeGroupId = rgtInfo.getRecipeGroupId();
         String recipeId = rgtInfo.getRecipeId();         // e.g. "xxx.xx-xxxx.xxxx-{cEF}{c134}"
 
         // 4) 將 toolIdList 解析成 List<String>
-        List<String> toolIds = ParsingUtil.splitToolList(toolIdListStr);
+        List<String> toolIds = ToolChamberUtil.splitToolList(toolIdListStr);
 
         // 5) 取得 RecipeGroupCheckBlue
         List<RecipeGroupCheckBlue> checkBlueList =
@@ -107,7 +107,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
                 runcardRawInfo.getRuncardId(), cond, checkBlueList.size(), recipeGroupId, toolIds);
 
 
-        Map<String, List<List<String>>> grouped = ParsingUtil.parseChamberGrouped(toolIds, recipeId);
+        Map<String, List<List<String>>> grouped = ToolChamberUtil.parseChamberGrouped(toolIds, recipeId);
         log.info("RuncardID: {} Condition: {} - Parsed chamber grouped from recipeId: {} -> {}",
                 runcardRawInfo.getRuncardId(), cond, recipeId, grouped);
 
@@ -186,10 +186,10 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
      * - toolId= tool
      * - releaseFlag=1
      * - enableFlag=1
-     * 即視為通過
+     * 即視為「通過」(true)。
      */
     private boolean checkToolOnlyPass(String tool, List<RecipeGroupCheckBlue> checkBlueList) {
-        return checkBlueList.stream().noneMatch(blue ->
+        return checkBlueList.stream().anyMatch(blue ->
                 blue.getToolId().equals(tool)
                         && "1".equals(blue.getReleaseFlag())
                         && "1".equals(blue.getEnableFlag())

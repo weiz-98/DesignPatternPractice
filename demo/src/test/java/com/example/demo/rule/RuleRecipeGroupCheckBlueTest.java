@@ -6,12 +6,14 @@ import com.example.demo.vo.RecipeGroupsAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
+import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
@@ -19,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.when;
 
+@Slf4j
 @ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
 class RuleRecipeGroupCheckBlueTest {
 
@@ -254,5 +257,102 @@ class RuleRecipeGroupCheckBlueTest {
         // failTools 應包含 "JDTM17"
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
         assertTrue(failTools.contains("JDTM17"));
+    }
+
+    /**
+     * 情境 A: lotType 為空 => skip => result=0
+     */
+    @Test
+    void testLotTypeEmpty() {
+        // 準備：把 lotType 設成空
+        Rule ruleWithEmptyLotType = new Rule();
+        ruleWithEmptyLotType.setRuleType("RecipeGroupCheckBlue");
+        ruleWithEmptyLotType.setLotType(Collections.emptyList()); // 空
+        ruleWithEmptyLotType.setSettings(Map.of("anyKey", "anyVal")); // 只要非null
+
+        // 執行
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithEmptyLotType);
+
+        // 驗證 => skip => result=0, msg="lotType is empty => skip check"
+        assertEquals(0, result.getResult());
+        assertEquals("lotType is empty => skip check", result.getDetail().get("msg"));
+    }
+
+    /**
+     * 情境 B: lotType mismatch => skip => result=0
+     *   - 若 partId 以 "TM" 開頭 => 只有 lotType=["Prod"] 時表示應檢查
+     *   - 反之 => 會被視為 mismatch => skip
+     */
+    @Test
+    void testLotTypeMismatch() {
+        // 既然 ruleWithLotType=["Prod"]，那麼只在 partId 以"TM"開頭時才會檢查
+        // 現在故意讓 partId="XX-123" => mismatch
+        dummyRuncard.setPartId("TM-123");
+
+        // 執行
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+
+        // 驗證 => skip => result=0, msg="lotType mismatch => skip check"
+        assertEquals(0, result.getResult());
+        assertEquals("lotType mismatch => skip check", result.getDetail().get("msg"));
+    }
+
+    /**
+     * [新增] 情境 C: settings=null => skip => result=0
+     */
+    @Test
+    void testNoSettings() {
+        Rule ruleNoSettings = new Rule();
+        ruleNoSettings.setRuleType("RecipeGroupCheckBlue");
+        ruleNoSettings.setLotType(List.of("Prod"));
+        ruleNoSettings.setSettings(null); // 無任何 settings => skip
+
+        // 執行
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleNoSettings);
+
+        // 驗證 => skip => result=0, msg="No settings => skip check"
+        assertEquals(0, result.getResult());
+        assertEquals("No settings => skip check", result.getDetail().get("msg"));
+    }
+
+    /**
+     * 情境 D: 找不到任何 RecipeGroupsAndToolInfo => result=3
+     */
+    @Test
+    void testNoRecipeGroupsAndToolInfo() {
+        // 模擬 dataLoaderService 直接回傳空 => 表示找不到對應 cond
+        when(dataLoaderService.getRecipeGroupsAndToolInfo()).thenReturn(Collections.emptyList());
+
+        // 執行
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+
+        // 驗證 => 會走到 "No RecipeGroupsAndToolInfo for condition" => lamp=3
+        assertEquals(3, result.getResult());
+        assertEquals("No RecipeGroupsAndToolInfo for condition", result.getDetail().get("error"));
+    }
+
+    /**
+     * 情境 E: checkBlueList 為空 => 無法匹配 => 失敗 => lamp=3
+     *   (因為任何 tool/chamber 都找不到 release=1,enable=1 的紀錄)
+     */
+    @Test
+    void testEmptyCheckBlueList() {
+        // 先讓 cond 有一筆對應的 groupsAndToolInfo
+        RecipeGroupsAndToolInfo info = new RecipeGroupsAndToolInfo(
+                TEST_COND, "RG-999", "JDTM16", "xxx.xx-xxxx.xxxx-{c}"
+        );
+        when(dataLoaderService.getRecipeGroupsAndToolInfo()).thenReturn(List.of(info));
+
+        // 取得 checkBlueList 時, 回傳空 => 全部 tool 都 fail
+        when(dataLoaderService.getRecipeGroupCheckBlue("RG-999", List.of("JDTM16")))
+                .thenReturn(Collections.emptyList());
+
+        // 執行
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+
+        // 驗證 => fail => lamp=3, failTools 包含 "JDTM16"
+        assertEquals(3, result.getResult());
+        List<String> failTools = (List<String>) result.getDetail().get("failTools");
+        assertTrue(failTools.contains("JDTM16"));
     }
 }

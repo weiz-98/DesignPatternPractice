@@ -12,25 +12,25 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Slf4j
-class ParsingUtilTest {
+class ToolChamberUtilTest {
 
     @Test
     void splitToolList_nullOrEmpty() {
-        assertTrue(ParsingUtil.splitToolList(null).isEmpty());
-        assertTrue(ParsingUtil.splitToolList("").isEmpty());
-        assertTrue(ParsingUtil.splitToolList("   ").isEmpty());
+        assertTrue(ToolChamberUtil.splitToolList(null).isEmpty());
+        assertTrue(ToolChamberUtil.splitToolList("").isEmpty());
+        assertTrue(ToolChamberUtil.splitToolList("   ").isEmpty());
     }
 
     @Test
     void splitToolList_normal() {
         List<String> expected = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
-        assertEquals(expected, ParsingUtil.splitToolList("JDTM16, JDTM17, JDTM20"));
+        assertEquals(expected, ToolChamberUtil.splitToolList("JDTM16, JDTM17, JDTM20"));
     }
 
     @Test
     void parsingChamber_noBrackets() {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
-        assertEquals(tools, ParsingUtil.parsingChamber(tools, "xxx.xx-xxxx.xxxx-"));
+        assertEquals(tools, ToolChamberUtil.parsingChamber(tools, "xxx.xx-xxxx.xxxx-"));
     }
 
     @Test
@@ -38,7 +38,7 @@ class ParsingUtilTest {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx-{c}";
         List<String> expected = Arrays.asList("JDTM16#%%", "JDTM17#%%", "JDTM20#%%");
-        assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
+        assertEquals(expected, ToolChamberUtil.parsingChamber(tools, recipeId));
     }
 
     @Test
@@ -50,7 +50,7 @@ class ParsingUtilTest {
                 "JDTM17#E", "JDTM17#F",
                 "JDTM20#E", "JDTM20#F"
         );
-        assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
+        assertEquals(expected, ToolChamberUtil.parsingChamber(tools, recipeId));
     }
 
     @Test
@@ -70,7 +70,7 @@ class ParsingUtilTest {
                 // For JDTM20
                 "JDTM20#E", "JDTM20#F", "JDTM20#1", "JDTM20#3", "JDTM20#4", "JDTM20#A", "JDTM20#B"
         );
-        assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
+        assertEquals(expected, ToolChamberUtil.parsingChamber(tools, recipeId));
     }
 
     @Test
@@ -83,7 +83,7 @@ class ParsingUtilTest {
                 "JDTM17#3", "JDTM17#2",
                 "JDTM20#3", "JDTM20#2"
         );
-        assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
+        assertEquals(expected, ToolChamberUtil.parsingChamber(tools, recipeId));
     }
 
     @Test
@@ -103,7 +103,7 @@ class ParsingUtilTest {
                 // For JDTM20
                 "JDTM20#2", "JDTM20#3", "JDTM20#A", "JDTM20#C", "JDTM20#B", "JDTM20#D"
         );
-        assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
+        assertEquals(expected, ToolChamberUtil.parsingChamber(tools, recipeId));
     }
 
     @Test
@@ -116,7 +116,7 @@ class ParsingUtilTest {
                 "JDTM17#E", "JDTM17#F",
                 "JDTM20#E", "JDTM20#F"
         );
-        assertEquals(expected, ParsingUtil.parsingChamber(tools, recipeId));
+        assertEquals(expected, ToolChamberUtil.parsingChamber(tools, recipeId));
     }
 
     /**
@@ -131,7 +131,7 @@ class ParsingUtilTest {
     void parseChamberGrouped_noBracket() {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17", "JDTM20");
         String recipeId = "xxx.xx-xxxx.xxxx";
-        Map<String, List<List<String>>> result = ParsingUtil.parseChamberGrouped(tools, recipeId);
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
 
         log.info("noBracket result: {}", result);
         assertEquals(3, result.size());
@@ -148,7 +148,7 @@ class ParsingUtilTest {
     void parseChamberGrouped_case1_bracketsEmpty() {
         List<String> tools = Arrays.asList("JDTM16", "JDTM17");
         String recipeId = "xxx.xx-xxxx.xxxx-{c}";
-        Map<String, List<List<String>>> result = ParsingUtil.parseChamberGrouped(tools, recipeId);
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
 
         log.info("{c} result: {}", result);
         for (String tool : tools) {
@@ -163,7 +163,7 @@ class ParsingUtilTest {
     void parseChamberGrouped_case2_multipleBracketsNoParen() {
         List<String> tools = Arrays.asList("T1", "T2");
         String recipeId = "xxx.xx-xxxx.xxxx-{cEF}{c134}";
-        Map<String, List<List<String>>> result = ParsingUtil.parseChamberGrouped(tools, recipeId);
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
 
         log.info("{cEF}{c134} result: {}", result);
         for (String t : tools) {
@@ -178,7 +178,7 @@ class ParsingUtilTest {
     void parseChamberGrouped_case3_hasParen() {
         List<String> tools = Collections.singletonList("JDTM16");
         String recipeId = "xxx.xx-xxxx.xxxx-{c(3;2;4)}";
-        Map<String, List<List<String>>> result = ParsingUtil.parseChamberGrouped(tools, recipeId);
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
 
         log.info("{c(3;2;4)} result: {}", result);
         assertTrue(result.containsKey("JDTM16"));
@@ -191,7 +191,7 @@ class ParsingUtilTest {
     void parseChamberGrouped_case4_singleBracketLetters() {
         List<String> tools = Arrays.asList("T1", "T2", "T3");
         String recipeId = "xxx.xx-xxxx.xxxx-{cEF}";
-        Map<String, List<List<String>>> result = ParsingUtil.parseChamberGrouped(tools, recipeId);
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
 
         log.info("{cEF} result: {}", result);
         for (String t : tools) {
@@ -205,7 +205,7 @@ class ParsingUtilTest {
     void parseChamberGrouped_caseExtra() {
         List<String> tools = Arrays.asList("T1", "T2");
         String recipeId = "xxx.xx-xxxx.xxxx-{c(2;3)}{c(A;C)}{c(B;D)}";
-        Map<String, List<List<String>>> result = ParsingUtil.parseChamberGrouped(tools, recipeId);
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
         log.info("{c(2;3)}{c(A;C)}{c(B;D)} result: {}", result);
         for (String t : tools) {
             List<List<String>> expansions = result.get(t);

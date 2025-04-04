@@ -1,7 +1,7 @@
 package com.example.demo.service;
 
 
-import com.example.demo.utils.ParsingUtil;
+import com.example.demo.utils.ToolChamberUtil;
 import com.example.demo.vo.*;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -29,9 +29,9 @@ public class RuncardHandlerService {
 
         for (OneConditionRecipeAndToolInfo oneConditionRecipeAndToolInfo : oneRuncardRecipeAndToolInfos) {
             // 解析 toolList
-            List<String> toolList = ParsingUtil.splitToolList(oneConditionRecipeAndToolInfo.getToolIdList());
+            List<String> toolList = ToolChamberUtil.splitToolList(oneConditionRecipeAndToolInfo.getToolIdList());
             // 解析 recipeId => 產生多個 tool#chamber
-            List<String> toolChambers = ParsingUtil.parsingChamber(toolList, oneConditionRecipeAndToolInfo.getRecipeId());
+            List<String> toolChambers = ToolChamberUtil.parsingChamber(toolList, oneConditionRecipeAndToolInfo.getRecipeId());
             log.info("RuncardID: {} Condition: {} ToolChambers: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), toolChambers);
 
             // 對這些 tool#chamber 進行 mapping

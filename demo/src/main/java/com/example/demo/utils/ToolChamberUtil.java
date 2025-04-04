@@ -11,7 +11,7 @@ import java.util.stream.Stream;
  * 其中重點為 parsingChamber 及 parseChamberGrouped，
  * 用於將 recipe ID (含 {} ) 轉換成對應的 tool-chamber 組合 (平鋪 or AND/OR 分組)。
  */
-public class ParsingUtil {
+public class ToolChamberUtil {
 
     private static final Pattern EXPANSION_PATTERN = Pattern.compile("\\{(.*?)\\}");
 
