@@ -52,7 +52,7 @@ class RuleForwardProcessTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-999");
+        rc.setPartId("XX-999");
         rc.setRuncardId("RC-001");
 
         // 新增參數 "TEST_COND"
@@ -69,7 +69,7 @@ class RuleForwardProcessTest {
         rule.setLotType(List.of("Prod"));
         rule.setSettings(null);
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
         // 新增參數 "TEST_COND"
@@ -86,7 +86,7 @@ class RuleForwardProcessTest {
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of("forwardSteps", 2));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
         when(dataLoaderService.getForwardProcess()).thenReturn(Collections.emptyList());
@@ -110,7 +110,7 @@ class RuleForwardProcessTest {
                 "toolIds", List.of("TOOL-X", "TOOL-999")
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = new ArrayList<>();
@@ -139,7 +139,7 @@ class RuleForwardProcessTest {
                 "toolIds", List.of("TOOL-999")
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-888");
+        rc.setPartId("TM-888");
         rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = List.of(
@@ -165,7 +165,7 @@ class RuleForwardProcessTest {
                 "toolIds", List.of("TOOL-1", "TOOL-2")
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123"); // => not skip
+        rc.setPartId("TM-123"); // => not skip
         rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = List.of(
@@ -190,7 +190,7 @@ class RuleForwardProcessTest {
                 "toolIds", Collections.emptyList()
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-999");
+        rc.setPartId("TM-999");
         rc.setRuncardId("RC-001");
 
         List<ForwardProcess> all = new ArrayList<>();

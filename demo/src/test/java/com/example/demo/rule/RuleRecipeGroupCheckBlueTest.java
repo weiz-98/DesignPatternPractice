@@ -40,6 +40,7 @@ class RuleRecipeGroupCheckBlueTest {
         // 建立 RuncardRawInfo (runcardId、partId等可自行設定)
         dummyRuncard = new RuncardRawInfo();
         dummyRuncard.setRuncardId("RC-001");
+        dummyRuncard.setPartId("TM-123");
 
         // 建立一個預設帶有 lotType=["Prod"] 的 Rule
         ruleWithLotType = new Rule();
@@ -287,7 +288,7 @@ class RuleRecipeGroupCheckBlueTest {
     void testLotTypeMismatch() {
         // 既然 ruleWithLotType=["Prod"]，那麼只在 partId 以"TM"開頭時才會檢查
         // 現在故意讓 partId="XX-123" => mismatch
-        dummyRuncard.setPartId("TM-123");
+        dummyRuncard.setPartId("XX-123");
 
         // 執行
         ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);

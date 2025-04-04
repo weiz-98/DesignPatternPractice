@@ -51,7 +51,7 @@ class RuleInhibitionCheckStatusTest {
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
-        rc.setPartId("TM-123");
+        rc.setPartId("XX-123");
 
         ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
 
@@ -66,7 +66,7 @@ class RuleInhibitionCheckStatusTest {
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
-        rc.setPartId("XX-999");
+        rc.setPartId("TM-999");
         when(dataLoaderService.getInhibitionCheckStatus()).thenReturn(Collections.emptyList());
 
         ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
@@ -82,7 +82,7 @@ class RuleInhibitionCheckStatusTest {
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
 
         List<InhibitionCheckStatus> mockList = List.of(
                 new InhibitionCheckStatus("Y"),
@@ -103,7 +103,7 @@ class RuleInhibitionCheckStatusTest {
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
-        rc.setPartId("XX-ABC");
+        rc.setPartId("TM-ABC");
 
         List<InhibitionCheckStatus> mockList = List.of(
                 new InhibitionCheckStatus("Y"),

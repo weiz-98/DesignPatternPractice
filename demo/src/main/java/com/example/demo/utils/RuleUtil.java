@@ -32,21 +32,36 @@ public class RuleUtil {
         List<String> lotTypeList = rule.getLotType();
         String partId = runcardRawInfo.getPartId();
         if (partId == null) {
-            return false;
+            // 這裡示範直接回傳 true（表示 mismatch）→ 跳過檢查
+            return true;
         }
+
         boolean startsWithTM = partId.startsWith("TM");
 
         boolean containsProd = lotTypeList.contains("Prod");
         boolean containsCW = lotTypeList.contains("C/W");
 
-        boolean shouldCheck = containsProd && startsWithTM;
-
-        if (containsCW && !startsWithTM) {
-            shouldCheck = true;
+        // 1) 若同時包含 "Prod" 與 "C/W" => 所有情況都檢查 ⇒ 不算 mismatch
+        if (containsProd && containsCW) {
+            return false; // no mismatch => 會繼續檢查
         }
 
-        return shouldCheck;
+        // 2) 若只有 "Prod" => 只檢查「partId 開頭 'TM'」，否則 mismatch
+        if (containsProd && !containsCW) {
+            // 若不是 TM 開頭 => mismatch
+            return !startsWithTM;
+        }
+
+        // 3) 若只有 "C/W" => 只檢查「partId 不以 'TM' 開頭」，否則 mismatch
+        if (containsCW && !containsProd) {
+            // 若是 TM 開頭 => mismatch
+            return startsWithTM;
+        }
+
+        // 4) 若 lotType 裡還有其他值 (或是完全不包含 Prod / C/W) => 不在需求範圍 → 全部視為 mismatch
+        return true;
     }
+
 
     public static int parseIntSafe(Object obj) {
         if (obj instanceof Number) {

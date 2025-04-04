@@ -49,7 +49,7 @@ class RuleWaferConditionTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.singletonList("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-123");
+        rc.setPartId("XX-123");
         rc.setRuncardId("RC-001");
 
         ResultInfo result = ruleWaferCondition.check("TEST_COND", rc, rule);
@@ -64,7 +64,7 @@ class RuleWaferConditionTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.singletonList("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-ABC");
+        rc.setPartId("TM-ABC");
         rc.setRuncardId("RC-001");
 
         WaferCondition wf = new WaferCondition();
@@ -87,7 +87,7 @@ class RuleWaferConditionTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.singletonList("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-999");
+        rc.setPartId("TM-999");
         rc.setRuncardId("RC-001");
 
         WaferCondition wf = new WaferCondition();
@@ -110,7 +110,7 @@ class RuleWaferConditionTest {
         Rule rule = new Rule();
         rule.setLotType(Collections.singletonList("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
         when(dataLoaderService.getWaferCondition()).thenReturn(null);

@@ -7,8 +7,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Collections;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
 
 class RuleUtilTest {
 
@@ -37,10 +36,10 @@ class RuleUtilTest {
     }
 
     @Test
-    void checkLotType_lotTypeValidityEmpty() {
-        // 當 lotType 為空 => 不檢查
+    void lotTypeEmpty_shouldReturnFalse() {
+        // 當 lotType 為空 => 視為不檢查 => mismatch=false
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC"); // partId
+        rc.setPartId("TM-ABC");
         Rule rule = new Rule();
         rule.setLotType(Collections.emptyList());
 
@@ -48,74 +47,84 @@ class RuleUtilTest {
     }
 
     @Test
-    void checkLotType_Validity_partIdNull() {
-        // partId = null => 不檢查
+    void partIdNull_shouldReturnTrueOrFalse() {
+
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId(null);
         Rule rule = new Rule();
-        rule.setLotType(List.of("Prod")); // 有值
+        rule.setLotType(List.of("Prod"));
 
-        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
+        // 假設新的實作中：partId=null => return true(當 mismatch => skip)
+        // 若您想改成 false => 看最終需求
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule),
+                "若需求希望 partId=null => mismatch => true");
     }
 
     @Test
-    void checkLotType_Validity_containsProd_partIdStartsWithTM() {
-        // lotType = ["Prod"], partId = "TMXXX"
+    void onlyProd_partIdStartsWithTM_shouldReturnFalse() {
+        // 若只有 ["Prod"] => partId="TM" => 不 mismatch => return false
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-123");
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
 
-        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
-    }
-
-    @Test
-    void checkLotType_Validity_containsProd_partIdNotStartWithTM() {
-        // lotType = ["Prod"], partId = "AB-123"
-        RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("AB-123");
-        Rule rule = new Rule();
-        rule.setLotType(List.of("Prod"));
-
         assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
-    void checkLotType_Validity_containsCW_partIdStartWithTM() {
-        // lotType = ["C/W"], partId = "TM-ABC"
+    void onlyProd_partIdNotStartWithTM_shouldReturnTrue() {
+        // 若只有 ["Prod"] => partId不是 TM => mismatch => true
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("XX-123");
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
+    }
+
+    // ---------------------- 只有 ["C/W"] ----------------------
+
+    @Test
+    void onlyCW_partIdStartsWithTM_shouldReturnTrue() {
+        // 若只有 ["C/W"] => partId=TM => mismatch
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-ABC");
         Rule rule = new Rule();
         rule.setLotType(List.of("C/W"));
 
-        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
+        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
-    void checkLotType_Validity_containsCW_partIdNotStartWithTM() {
-        // lotType = ["C/W"], partId = "XX-456"
+    void onlyCW_partIdNotStartWithTM_shouldReturnFalse() {
+        // 若只有 ["C/W"] => partId非 TM => 不 mismatch => 應檢查
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-456");
         Rule rule = new Rule();
         rule.setLotType(List.of("C/W"));
 
-        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
 
     @Test
-    void checkLotType_Validity_containsBoth() {
-        // lotType = ["Prod", "C/W"], partId = "TM-ABC"
-        // 只要符合其中一個 => true
+    void containsProdAndCW_partIdStartsWithTM_shouldReturnFalse() {
+        // 若同時包含 => 全部都要檢查 => 不管 TM 或非 TM => mismatch=false
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-ABC");
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod", "C/W"));
 
-        // partId 以 "TM" 開頭 => 符合 Prod => 應該 true
-        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
-
-        // 若換成 partId = "XX-999"，就只符合 C/W => 也應該 true
-        rc.setPartId("XX-999");
-        assertTrue(RuleUtil.isLotTypeMismatch(rc, rule));
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
     }
+
+    @Test
+    void containsProdAndCW_partIdNotStartWithTM_shouldReturnFalse() {
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("XX-999");
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod", "C/W"));
+
+        assertFalse(RuleUtil.isLotTypeMismatch(rc, rule));
+    }
+
 }

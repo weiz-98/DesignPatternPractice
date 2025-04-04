@@ -33,7 +33,7 @@ class RuleRCOwnerTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-ABC");
+        rc.setPartId("XX-ABC");
         rc.setRuncardId("RC-001");
 
         ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
@@ -48,7 +48,7 @@ class RuleRCOwnerTest {
         rule.setLotType(List.of("Prod"));
         rule.setSettings(null);
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
         ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
@@ -72,7 +72,7 @@ class RuleRCOwnerTest {
                 )
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-123");
+        rc.setPartId("TM-123");
         rc.setIssuingEngineer("ENG-A");
         rc.setRuncardId("RC-001");
 
@@ -106,7 +106,7 @@ class RuleRCOwnerTest {
         ));
 
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("XX-999"); // => startWithTM=false => containProd => shouldCheck= false => pass
+        rc.setPartId("TM-999"); // => startWithTM=false => containProd => shouldCheck= false => pass
         rc.setIssuingEngineer("ENG-X");
         rc.setRuncardId("RC-001");
 
