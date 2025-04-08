@@ -9,8 +9,8 @@ import lombok.NoArgsConstructor;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class RecipeGroupsAndToolInfo {
-    private String conditions;
+public class RecipeGroupAndToolInfo {
+    private String condition;
     private String recipeGroupId;
     private String toolIdList;  // 可能是 "JDTM16,JDTM17,JDTM20"
     private String recipeId;    // 例如 "xxx.xx-xxxx.xxxx-{cEF}{c134}"

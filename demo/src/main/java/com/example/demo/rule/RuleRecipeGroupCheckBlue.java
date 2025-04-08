@@ -4,7 +4,7 @@ import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.utils.ToolChamberUtil;
-import com.example.demo.vo.RecipeGroupsAndToolInfo;
+import com.example.demo.vo.RecipeGroupAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -74,9 +74,9 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         }
 
         // 3) 找出該 cond 對應的 RecipeGroupsAndToolInfo
-        List<RecipeGroupsAndToolInfo> groupsAndToolInfos = dataLoaderService.getRecipeGroupsAndToolInfo();
-        List<RecipeGroupsAndToolInfo> filteredGroups = groupsAndToolInfos.stream()
-                .filter(rgt -> cond.equals(rgt.getConditions()))
+        List<RecipeGroupAndToolInfo> groupsAndToolInfos = dataLoaderService.getRecipeGroupAndToolInfo();
+        List<RecipeGroupAndToolInfo> filteredGroups = groupsAndToolInfos.stream()
+                .filter(rgt -> cond.equals(rgt.getCondition()))
                 .toList();
         if (filteredGroups.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No RecipeGroupsAndToolInfo for condition",
@@ -92,7 +92,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         }
 
         // 這邊按理來說只會有一筆(mapping 到指定的 condition)
-        RecipeGroupsAndToolInfo rgtInfo = filteredGroups.getFirst();
+        RecipeGroupAndToolInfo rgtInfo = filteredGroups.getFirst();
         String toolIdListStr = rgtInfo.getToolIdList();  // e.g. "JDTM16,JDTM17,JDTM20"
         String recipeGroupId = rgtInfo.getRecipeGroupId();
         String recipeId = rgtInfo.getRecipeId();         // e.g. "xxx.xx-xxxx.xxxx-{cEF}{c134}"

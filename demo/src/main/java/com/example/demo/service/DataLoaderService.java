@@ -187,8 +187,8 @@ public class DataLoaderService {
         return mockList;
     }
 
-    public List<RecipeGroupsAndToolInfo> getRecipeGroupsAndToolInfo() {
-        Optional<List<RecipeGroupsAndToolInfo>> opt = runcardDao.getRecipeGroupsAndToolInfos();
+    public List<RecipeGroupAndToolInfo> getRecipeGroupAndToolInfo() {
+        Optional<List<RecipeGroupAndToolInfo>> opt = runcardDao.getRecipeGroupsAndToolInfos();
         return opt.orElseGet(ArrayList::new);
     }
 }
