@@ -40,6 +40,7 @@ public class RuleForwardProcess implements IRuleCheck {
             detail.put("msg", "lotType is empty => skip check");
             detail.put("runcardId", runcardRawInfo.getRuncardId());
             detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
             info.setDetail(detail);
             return info;
         }
@@ -53,6 +54,8 @@ public class RuleForwardProcess implements IRuleCheck {
             detail.put("msg", "lotType mismatch => skip check");
             detail.put("runcardId", runcardRawInfo.getRuncardId());
             detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -67,6 +70,8 @@ public class RuleForwardProcess implements IRuleCheck {
             detail.put("msg", "No settings => skip check");
             detail.put("runcardId", runcardRawInfo.getRuncardId());
             detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -89,6 +94,8 @@ public class RuleForwardProcess implements IRuleCheck {
             detail.put("error", "No ForwardProcess data => skip");
             detail.put("runcardId", runcardRawInfo.getRuncardId());
             detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -133,6 +140,7 @@ public class RuleForwardProcess implements IRuleCheck {
         detailMap.put("forwardRecipeIdList", forwardRecipeIds);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());
         detailMap.put("condition", cond);
+        detailMap.put("lotType", rule.getLotType());
 
         info.setResult(lamp);
         info.setDetail(detailMap);

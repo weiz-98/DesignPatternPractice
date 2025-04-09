@@ -37,11 +37,13 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
             log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
                     runcardRawInfo.getRuncardId(), cond);
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType is empty => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType is empty => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -49,11 +51,13 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
             log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
                     runcardRawInfo.getRuncardId(), cond);
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType mismatch => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType mismatch => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -64,11 +68,13 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
             log.info("RuncardID: {} Condition: {} - No settings => skip check",
                     runcardRawInfo.getRuncardId(), cond);
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "No settings => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "No settings => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -81,12 +87,14 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         if (filteredGroups.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No RecipeGroupsAndToolInfo for condition",
                     runcardRawInfo.getRuncardId(), cond);
+
             info.setResult(3);
-            Map<String, Object> detail = Map.of(
-                    "error", "No RecipeGroupsAndToolInfo for condition",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("error", "No RecipeGroupsAndToolInfo for condition");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -112,7 +120,6 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
                 runcardRawInfo.getRuncardId(), cond, recipeId, grouped);
 
         boolean pass = true;
-        Map<String, Object> detailMap = new HashMap<>();
         List<String> failTools = new ArrayList<>();
 
         for (Map.Entry<String, List<List<String>>> entry : grouped.entrySet()) {
@@ -164,6 +171,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
 
         int lamp = pass ? 1 : 3;
 
+        Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("result", lamp);
         detailMap.put("recipeGroupId", recipeGroupId);
         detailMap.put("toolIdList", toolIdListStr);
@@ -171,6 +179,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         detailMap.put("failTools", failTools);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());
         detailMap.put("condition", cond);
+        detailMap.put("lotType", rule.getLotType());
 
         info.setResult(lamp);
         info.setDetail(detailMap);

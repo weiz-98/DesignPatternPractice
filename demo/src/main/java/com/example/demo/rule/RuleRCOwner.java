@@ -8,6 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -28,11 +29,12 @@ public class RuleRCOwner implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType is empty => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType is empty => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -42,11 +44,12 @@ public class RuleRCOwner implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType mismatch => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType mismatch => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -57,11 +60,12 @@ public class RuleRCOwner implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "No settings => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "No settings => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -82,15 +86,15 @@ public class RuleRCOwner implements IRuleCheck {
         Map<String, String> sectionsMap = RuleUtil.parseStringMap(settings.get("sections"));
         List<String> sectionNames = new ArrayList<>(sectionsMap.keySet());
 
-        Map<String, Object> detailMap = Map.of(
-                "result", lamp,
-                "issuingEngineer", issuingEngineer,
-                "configuredRCOwnerOrg", sectionNames,
-                "configuredRCOwnerEmployeeId", employeeIds,
-                "configuredRCOwnerName", employeeNames,
-                "runcardId", runcardRawInfo.getRuncardId(),
-                "condition", cond
-        );
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("result", lamp);
+        detailMap.put("issuingEngineer", issuingEngineer);
+        detailMap.put("configuredRCOwnerOrg", sectionNames);
+        detailMap.put("configuredRCOwnerEmployeeId", employeeIds);
+        detailMap.put("configuredRCOwnerName", employeeNames);
+        detailMap.put("runcardId", runcardRawInfo.getRuncardId());
+        detailMap.put("condition", cond);
+        detailMap.put("lotType", rule.getLotType());
 
         info.setResult(lamp);
         info.setDetail(detailMap);

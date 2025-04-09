@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -33,11 +34,12 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType is empty => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType is empty => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -47,11 +49,12 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType mismatch => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType mismatch => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -62,11 +65,12 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(3);
-            Map<String, Object> detail = Map.of(
-                    "error", "No InhibitionCheckStatus data => skip",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("error", "No InhibitionCheckStatus data => skip");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -77,12 +81,12 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus => allY={}, finalLamp={}",
                 runcardRawInfo.getRuncardId(), cond, allY, lamp);
 
-        Map<String, Object> detailMap = Map.of(
-                "result", lamp,
-                "inhibitionCheck", allY,
-                "runcardId", runcardRawInfo.getRuncardId(),
-                "condition", cond
-        );
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("result", lamp);
+        detailMap.put("inhibitionCheck", allY);
+        detailMap.put("runcardId", runcardRawInfo.getRuncardId());
+        detailMap.put("condition", cond);
+        detailMap.put("lotType", rule.getLotType());
 
         info.setResult(lamp);
         info.setDetail(detailMap);

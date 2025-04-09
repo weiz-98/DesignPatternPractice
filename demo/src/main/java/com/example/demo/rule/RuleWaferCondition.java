@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
@@ -32,11 +33,12 @@ public class RuleWaferCondition implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType is empty => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType is empty => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -46,11 +48,12 @@ public class RuleWaferCondition implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(0);
-            Map<String, Object> detail = Map.of(
-                    "msg", "lotType mismatch => skip check",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType mismatch => skip check");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -61,11 +64,12 @@ public class RuleWaferCondition implements IRuleCheck {
                     runcardRawInfo.getRuncardId(), cond);
 
             info.setResult(3);
-            Map<String, Object> detail = Map.of(
-                    "error", "No WaferCondition data => skip",
-                    "runcardId", runcardRawInfo.getRuncardId(),
-                    "condition", cond
-            );
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("error", "No WaferCondition data => skip");
+            detail.put("runcardId", runcardRawInfo.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
             info.setDetail(detail);
             return info;
         }
@@ -79,14 +83,15 @@ public class RuleWaferCondition implements IRuleCheck {
         log.info("RuncardID: {} Condition: {} - WaferCondition => uniqueCount={}, wfrQty={}, finalLamp={}",
                 runcardRawInfo.getRuncardId(), cond, uniqueCount, wfrQty, lamp);
 
-        Map<String, Object> detailMap = Map.of(
-                "result", lamp,
-                "waferCondition", isEqual,
-                "wfrQty", wfrQty,
-                "experimentQty", uniqueCount,
-                "runcardId", runcardRawInfo.getRuncardId(),
-                "condition", cond
-        );
+        Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("result", lamp);
+        detailMap.put("waferCondition", isEqual);
+        detailMap.put("wfrQty", wfrQty);
+        detailMap.put("experimentQty", uniqueCount);
+        detailMap.put("runcardId", runcardRawInfo.getRuncardId());
+        detailMap.put("condition", cond);
+        detailMap.put("lotType", rule.getLotType());
+
         info.setResult(lamp);
         info.setDetail(detailMap);
 
