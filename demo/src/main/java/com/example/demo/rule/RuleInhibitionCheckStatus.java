@@ -59,7 +59,7 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
             return info;
         }
 
-        List<InhibitionCheckStatus> list = dataLoaderService.getInhibitionCheckStatus();
+        List<InhibitionCheckStatus> list = dataLoaderService.getInhibitionCheckStatus(runcardRawInfo.getRuncardId());
         if (list.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No InhibitionCheckStatus data => skip",
                     runcardRawInfo.getRuncardId(), cond);

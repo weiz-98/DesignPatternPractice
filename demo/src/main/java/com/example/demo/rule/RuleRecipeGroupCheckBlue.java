@@ -80,7 +80,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         }
 
         // 3) 找出該 cond 對應的 RecipeGroupsAndToolInfo
-        List<RecipeGroupAndTool> groupsAndToolInfos = dataLoaderService.getRecipeGroupAndToolInfo();
+        List<RecipeGroupAndTool> groupsAndToolInfos = dataLoaderService.getRecipeGroupAndToolInfo(runcardRawInfo.getRuncardId());
         List<RecipeGroupAndTool> filteredGroups = groupsAndToolInfos.stream()
                 .filter(rgt -> cond.equals(rgt.getCondition()))
                 .toList();

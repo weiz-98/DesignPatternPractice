@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 class RuleForwardProcessTest {
@@ -44,7 +45,8 @@ class RuleForwardProcessTest {
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
-        verify(dataLoaderService, never()).getForwardProcess();
+        // 由於場景為 lotType 為空，不應該呼叫 getForwardProcess()
+        verify(dataLoaderService, never()).getForwardProcess(anyString());
     }
 
     @Test
@@ -60,7 +62,7 @@ class RuleForwardProcessTest {
 
         assertEquals(0, info.getResult());
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
-        verify(dataLoaderService, never()).getForwardProcess();
+        verify(dataLoaderService, never()).getForwardProcess(anyString());
     }
 
     @Test
@@ -77,7 +79,7 @@ class RuleForwardProcessTest {
 
         assertEquals(0, info.getResult());
         assertEquals("No settings => skip check", info.getDetail().get("msg"));
-        verify(dataLoaderService, never()).getForwardProcess();
+        verify(dataLoaderService, never()).getForwardProcess(anyString());
     }
 
     @Test
@@ -89,14 +91,14 @@ class RuleForwardProcessTest {
         rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
-        when(dataLoaderService.getForwardProcess()).thenReturn(Collections.emptyList());
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(Collections.emptyList());
 
         // 新增參數 "TEST_COND"
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult());
         assertEquals("No ForwardProcess data => skip", info.getDetail().get("error"));
-        verify(dataLoaderService, times(1)).getForwardProcess();
+        verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 
     @Test
@@ -118,14 +120,14 @@ class RuleForwardProcessTest {
         all.add(new ForwardProcess("LOT2", "preOpe2", "RCP1", "TOOL-999", "2023-09-01T11:00", "someCat"));
         all.add(new ForwardProcess("LOT3", "preOpe3", "Hello", "TOOL-ABC", "2023-09-01T12:00", "Measurement"));
 
-        when(dataLoaderService.getForwardProcess()).thenReturn(all);
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult(), "all match");
         assertEquals(1, info.getDetail().get("result"));
 
-        verify(dataLoaderService, times(1)).getForwardProcess();
+        verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 
     @Test
@@ -146,12 +148,12 @@ class RuleForwardProcessTest {
                 new ForwardProcess("LOT1", "OPE1", "HelloX", "TOOL-999", "2023-09-01T10:00", "???"),
                 new ForwardProcess("LOT2", "OPE2", "SOMEXXX", "TOOL-X", "2023-09-01T11:00", "???")
         );
-        when(dataLoaderService.getForwardProcess()).thenReturn(all);
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult(), "找不到 recipeId= 'ABC' => fail =>3");
-        verify(dataLoaderService, times(1)).getForwardProcess();
+        verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 
     @Test
@@ -171,12 +173,12 @@ class RuleForwardProcessTest {
         List<ForwardProcess> all = List.of(
                 new ForwardProcess("LOT1", "OPE1", "RCPX", "TOOL-1", "2023-09-01T10:00", "???")
         );
-        when(dataLoaderService.getForwardProcess()).thenReturn(all);
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult(), "TOOL-2 不存在 => fail =>3");
-        verify(dataLoaderService, times(1)).getForwardProcess();
+        verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 
     @Test
@@ -196,11 +198,11 @@ class RuleForwardProcessTest {
         List<ForwardProcess> all = new ArrayList<>();
         all.add(new ForwardProcess("LOT1", "pre1", "NoMeasureTest", "TOOL-ABC", "2023-09-01T09:00", "someCat"));
         all.add(new ForwardProcess("LOT2", "pre2", "HasMeasureTestInside", "TOOL-XYZ", "2023-09-01T10:00", "Measurement"));
-        when(dataLoaderService.getForwardProcess()).thenReturn(all);
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult(), "only leave measurement");
-        verify(dataLoaderService, times(1)).getForwardProcess();
+        verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 }

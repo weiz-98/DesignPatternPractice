@@ -84,7 +84,7 @@ public class RuleForwardProcess implements IRuleCheck {
         log.info("RuncardID: {} Condition: {} - forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}",
                 runcardRawInfo.getRuncardId(), cond, forwardSteps, includeMeasurement, recipeIds, toolIds);
 
-        List<ForwardProcess> allForward = dataLoaderService.getForwardProcess();
+        List<ForwardProcess> allForward = dataLoaderService.getForwardProcess(runcardRawInfo.getRuncardId());
         if (allForward.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip",
                     runcardRawInfo.getRuncardId(), cond);
@@ -153,23 +153,36 @@ public class RuleForwardProcess implements IRuleCheck {
 
     /**
      * 對於 recipeIds 裡的每個 pattern：
-     * - 若 pattern 以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 包含該 partial 即可
+     * - 若 pattern 以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 包含該 partial(不分大小寫) 即可
      * - 若 pattern 不以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 完全等於該 pattern 即可
      * 若找不到 => fail
      * 需全部 pattern 都有找到對應 => pass
      */
     private boolean checkRecipePatterns(List<ForwardProcess> filteredForwardProcesses, List<String> configuredRecipeIds) {
+        if (configuredRecipeIds == null || configuredRecipeIds.isEmpty()) {
+            return true;
+        }
+
         for (String pattern : configuredRecipeIds) {
+            if (pattern == null || pattern.trim().isEmpty()) {
+                return true;
+            }
             boolean matchedThisPattern = false;
-            if (pattern.startsWith("%")) {
-                String partial = pattern.substring(1);
+
+            String normalizedPattern = pattern.toLowerCase().trim();
+
+            if (normalizedPattern.startsWith("%")) {
+                // 取出 '%' 之後的部分當作 partial
+                String partial = normalizedPattern.substring(1);
                 for (ForwardProcess fp : filteredForwardProcesses) {
-                    if (fp.getRecipeId() != null && fp.getRecipeId().contains(partial)) {
+                    String recipeId = fp.getRecipeId() == null ? "" : fp.getRecipeId().toLowerCase();
+                    if (recipeId.contains(partial)) {
                         matchedThisPattern = true;
-                        break;
+                        break; // 找到就可以跳出
                     }
                 }
             } else {
+                // 不以 '%' 開頭 => 直接比 equals
                 for (ForwardProcess fp : filteredForwardProcesses) {
                     if (pattern.equals(fp.getRecipeId())) {
                         matchedThisPattern = true;

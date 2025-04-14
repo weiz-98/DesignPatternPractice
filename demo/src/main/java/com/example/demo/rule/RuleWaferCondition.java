@@ -58,7 +58,7 @@ public class RuleWaferCondition implements IRuleCheck {
             return info;
         }
 
-        WaferCondition wc = dataLoaderService.getWaferCondition();
+        WaferCondition wc = dataLoaderService.getWaferCondition(runcardRawInfo.getRuncardId());
         if (wc == null) {
             log.info("RuncardID: {} Condition: {} - No WaferCondition data => skip",
                     runcardRawInfo.getRuncardId(), cond);

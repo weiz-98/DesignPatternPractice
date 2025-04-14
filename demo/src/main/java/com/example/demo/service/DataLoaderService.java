@@ -24,13 +24,13 @@ public class DataLoaderService {
     private final RuncardInfoDao runcardInfoDao;
 
     // 取得 ForwardProcess 資料
-    public List<ForwardProcess> getForwardProcess() {
+    public List<ForwardProcess> getForwardProcess(String runcardId) {
         Optional<List<ForwardProcess>> opt = ruleDao.getForwardProcess();
         return opt.orElseGet(ArrayList::new);
     }
 
     // 取得 InhibitionCheckStatus 資料
-    public List<InhibitionCheckStatus> getInhibitionCheckStatus() {
+    public List<InhibitionCheckStatus> getInhibitionCheckStatus(String runcardId) {
         Optional<List<InhibitionCheckStatus>> opt = ruleDao.getInhibitionCheckStatus();
         return opt.orElseGet(ArrayList::new);
     }
@@ -42,7 +42,7 @@ public class DataLoaderService {
     }
 
     // 取得 WaferCondition 資料 (現在 RuleDao 回傳 Optional<WaferCondition>)
-    public WaferCondition getWaferCondition() {
+    public WaferCondition getWaferCondition(String runcardId) {
         Optional<WaferCondition> opt = ruleDao.getWaferCondition();
         return opt.orElseGet(WaferCondition::new);
     }
@@ -92,12 +92,12 @@ public class DataLoaderService {
      * 3. 根據 moduleList 取得 RuncardRawInfo
      * 這裡移除對「時間範圍」的檢查，因新版 RuncardRawInfo 沒有日期欄位
      */
-    public List<RuncardRawInfo> getMockRUncardRawInfoList(List<String> moduleList, LocalDateTime startTime, LocalDateTime endTime) {
+    public List<RuncardRawInfo> getMockRUncardRawInfoList(List<String> sectionIds, LocalDateTime startTime, LocalDateTime endTime) {
         // Mock 生成一些 RuncardRawInfo
         List<RuncardRawInfo> mockRuncardRawInfos = new ArrayList<>();
 
         // 如果包含 ModuleA
-        if (moduleList.contains("ModuleA")) {
+        if (sectionIds.contains("ModuleA")) {
             // 新版 RuncardRawInfo:
             // (String runcardId, String issuingEngineer, String lotId, String partId,
             //  String status, String purpose, String supervisorAndDepartment, Integer numberOfPieces, String holdAtOperNo)
@@ -128,7 +128,7 @@ public class DataLoaderService {
         }
 
         // 如果包含 ModuleB
-        if (moduleList.contains("ModuleB")) {
+        if (sectionIds.contains("ModuleB")) {
             RuncardRawInfo rc3 = new RuncardRawInfo(
                     "RC-003",
                     "EngineerC",
@@ -146,7 +146,7 @@ public class DataLoaderService {
         // 這裡原先可能要根據 startTime / endTime 做日期篩選，但現在無日期欄位可對照
         // 因此只印 log
         log.info("[getMockRUncardRawInfoList] moduleList={}, start={}, end={}, totalCount={}",
-                moduleList, startTime, endTime, mockRuncardRawInfos.size());
+                sectionIds, startTime, endTime, mockRuncardRawInfos.size());
         return mockRuncardRawInfos;
     }
 
@@ -187,12 +187,12 @@ public class DataLoaderService {
         return mockList;
     }
 
-    public List<RecipeGroupAndTool> getRecipeGroupAndToolInfo() {
+    public List<RecipeGroupAndTool> getRecipeGroupAndToolInfo(String runcardId) {
         Optional<List<RecipeGroupAndTool>> opt = runcardInfoDao.getRecipeGroupsAndToolInfos();
         return opt.orElseGet(ArrayList::new);
     }
 
-    public List<MultipleRecipeData> getMultipleRecipeData() {
+    public List<MultipleRecipeData> getMultipleRecipeData(String runcardId) {
         Optional<List<MultipleRecipeData>> opt = runcardInfoDao.multipleRecipeData();
         return opt.orElseGet(ArrayList::new);
     }
