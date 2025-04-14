@@ -5,7 +5,7 @@ import com.example.demo.po.InhibitionCheckStatus;
 import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.po.WaferCondition;
 import com.example.demo.rule.RuleDao;
-import com.example.demo.rule.RuncardDao;
+import com.example.demo.rule.RuncardInfoDao;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -21,7 +21,7 @@ import java.util.stream.Collectors;
 public class DataLoaderService {
 
     private final RuleDao ruleDao;
-    private final RuncardDao runcardDao;
+    private final RuncardInfoDao runcardInfoDao;
 
     // 取得 ForwardProcess 資料
     public List<ForwardProcess> getForwardProcess() {
@@ -187,8 +187,14 @@ public class DataLoaderService {
         return mockList;
     }
 
-    public List<RecipeGroupAndToolInfo> getRecipeGroupAndToolInfo() {
-        Optional<List<RecipeGroupAndToolInfo>> opt = runcardDao.getRecipeGroupsAndToolInfos();
+    public List<RecipeGroupAndTool> getRecipeGroupAndToolInfo() {
+        Optional<List<RecipeGroupAndTool>> opt = runcardInfoDao.getRecipeGroupsAndToolInfos();
         return opt.orElseGet(ArrayList::new);
     }
+
+    public List<MultipleRecipeData> getMultipleRecipeData() {
+        Optional<List<MultipleRecipeData>> opt = runcardInfoDao.multipleRecipeData();
+        return opt.orElseGet(ArrayList::new);
+    }
+
 }

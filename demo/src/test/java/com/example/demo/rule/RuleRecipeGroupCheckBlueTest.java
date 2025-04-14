@@ -2,7 +2,7 @@ package com.example.demo.rule;
 
 import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.DataLoaderService;
-import com.example.demo.vo.RecipeGroupAndToolInfo;
+import com.example.demo.vo.RecipeGroupAndTool;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -56,7 +56,7 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testCase1_bracket_c() {
         // 1) Mock dataLoaderService.getRecipeGroupsAndToolInfo(): 產生對應 cond=COND_TEST
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND,
                 "RG-001",
                 "JDTM16,JDTM17,JDTM20",
@@ -91,7 +91,7 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testCase2_bracket_cEF() {
         // Mock RecipeGroupsAndToolInfo => recipeId帶 {cEF}
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND,
                 "RG-002",
                 "JDTM16,JDTM17",
@@ -125,7 +125,7 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testCase3_bracket_cEF_c134() {
         // Mock RecipeGroupsAndToolInfo => recipeId 帶 {cEF}{c134}
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND,
                 "RG-003",
                 "JDTM16,JDTM17",
@@ -166,7 +166,7 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testCase4_bracket_cParenMultiple() {
         // Mock RecipeGroupsAndToolInfo => e.g. {c(3;2)}
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND,
                 "RG-004",
                 "JDTM16,JDTM20",
@@ -200,7 +200,7 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testCase5_noBrackets() {
         // Mock => recipeId 無 { } => "xxx.xx-xxxx.xxxx-"
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND,
                 "RG-005",
                 "JDTM16,JDTM17",
@@ -233,7 +233,7 @@ class RuleRecipeGroupCheckBlueTest {
      */
     @Test
     void testCase2_failIfNoCorrespondingChamber() {
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND,
                 "RG-002",
                 "JDTM16,JDTM17",
@@ -339,7 +339,7 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testEmptyCheckBlueList() {
         // 先讓 cond 有一筆對應的 groupsAndToolInfo
-        RecipeGroupAndToolInfo info = new RecipeGroupAndToolInfo(
+        RecipeGroupAndTool info = new RecipeGroupAndTool(
                 TEST_COND, "RG-999", "JDTM16", "xxx.xx-xxxx.xxxx-{c}"
         );
         when(dataLoaderService.getRecipeGroupAndToolInfo()).thenReturn(List.of(info));

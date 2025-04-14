@@ -4,7 +4,7 @@ import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.utils.ToolChamberUtil;
-import com.example.demo.vo.RecipeGroupAndToolInfo;
+import com.example.demo.vo.RecipeGroupAndTool;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -80,8 +80,8 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         }
 
         // 3) 找出該 cond 對應的 RecipeGroupsAndToolInfo
-        List<RecipeGroupAndToolInfo> groupsAndToolInfos = dataLoaderService.getRecipeGroupAndToolInfo();
-        List<RecipeGroupAndToolInfo> filteredGroups = groupsAndToolInfos.stream()
+        List<RecipeGroupAndTool> groupsAndToolInfos = dataLoaderService.getRecipeGroupAndToolInfo();
+        List<RecipeGroupAndTool> filteredGroups = groupsAndToolInfos.stream()
                 .filter(rgt -> cond.equals(rgt.getCondition()))
                 .toList();
         if (filteredGroups.isEmpty()) {
@@ -100,7 +100,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         }
 
         // 這邊按理來說只會有一筆(mapping 到指定的 condition)
-        RecipeGroupAndToolInfo rgtInfo = filteredGroups.getFirst();
+        RecipeGroupAndTool rgtInfo = filteredGroups.getFirst();
         String toolIdListStr = rgtInfo.getToolIdList();  // e.g. "JDTM16,JDTM17,JDTM20"
         String recipeGroupId = rgtInfo.getRecipeGroupId();
         String recipeId = rgtInfo.getRecipeId();         // e.g. "xxx.xx-xxxx.xxxx-{cEF}{c134}"
