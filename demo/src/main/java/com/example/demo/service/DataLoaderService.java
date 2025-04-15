@@ -150,41 +150,99 @@ public class DataLoaderService {
         return mockRuncardRawInfos;
     }
 
-    /**
-     * 4. 根據 runcardId 取得對應的 OneConditionRecipeAndToolInfo
-     */
     public List<OneConditionRecipeAndToolInfo> getRecipeAndToolInfo(String runcardId) {
-        if (runcardId == null || runcardId.isEmpty()) {
-            return Collections.emptyList();
-        }
-        // 依照 runcardId mock 出一些資料
-        List<OneConditionRecipeAndToolInfo> mockList = new ArrayList<>();
+        // 1) 先拿到兩份資料
+        List<RecipeGroupAndTool> recipeGroupAndToolList = getRecipeGroupAndToolInfo(runcardId);
+        List<MultipleRecipeData> multipleRecipeDataList = getMultipleRecipeData(runcardId);
 
-        OneConditionRecipeAndToolInfo info1 = new OneConditionRecipeAndToolInfo(
-                "condition1",
-                "JDTM16,JDTM17,JDTM20",
-                "xxx.xx-xxxx.xxxx-{cEF}{c134}"
-        );
-        OneConditionRecipeAndToolInfo info2 = new OneConditionRecipeAndToolInfo(
-                "condition2",
-                "RG-2026",
-                "yyy.yy-yyyy.yyyy-{c(2;3)}"
-        );
-        mockList.add(info1);
-        mockList.add(info2);
+        List<OneConditionRecipeAndToolInfo> result = new ArrayList<>();
 
-        // 視 runcardId 亦可做區分，如若為 "RC-002" 再加別的
-        if ("RC-002".equals(runcardId)) {
-            OneConditionRecipeAndToolInfo info3 = new OneConditionRecipeAndToolInfo(
-                    "condition2",
-                    "ToolX,ToolY",
-                    "zzz.zz-zzzz.zzzz-{c}"
-            );
-            mockList.add(info3);
+        // 2) 先把 RecipeGroupAndTool 直接轉成 OneConditionRecipeAndToolInfo
+        //    condition, toolIdList, recipeId 對應即可
+        for (RecipeGroupAndTool rgt : recipeGroupAndToolList) {
+            OneConditionRecipeAndToolInfo info = OneConditionRecipeAndToolInfo.builder()
+                    .condition(rgt.getCondition())       // 直接設定 condition
+                    .toolIdList(rgt.getToolIdList())     // 直接設定 tool
+                    .recipeId(rgt.getRecipeId())         // 直接設定 recipe
+                    .build();
+
+            result.add(info);
         }
 
-        log.info("[getRecipeAndToolInfo] runcardId={}, returnSize={}", runcardId, mockList.size());
-        return mockList;
+        // 3) 再處理 MultipleRecipeData 部分
+        // 3.1) 先依照 condition 分組
+        Map<String, List<MultipleRecipeData>> groupedByCondition = multipleRecipeDataList.stream()
+                .collect(Collectors.groupingBy(MultipleRecipeData::getCondition, LinkedHashMap::new, Collectors.toList()));
+
+        for (Map.Entry<String, List<MultipleRecipeData>> entry : groupedByCondition.entrySet()) {
+            String condVal = entry.getKey();               // e.g. "01", "02", ...
+            List<MultipleRecipeData> thisConditionList = entry.getValue();
+
+            // 3.2) 以 "RC_RECIPE_ID_XX" 的 XX 作為 key，再把同一 XX 下的
+            //      (1) RC_RECIPE_ID_XX => RECIPE
+            //      (2) RC_RECIPE_ID_XX_EQP_OA => TOOL
+            //      放在一起
+            Map<String, Map<String, String>> suffixMap = new LinkedHashMap<>();
+
+            for (MultipleRecipeData mrd : thisConditionList) {
+                String name = mrd.getName();   // e.g. "RC_RECIPE_ID_01", "RC_RECIPE_ID_01_EQP_OA"
+                String val = mrd.getValue();
+                // 取出數字後綴（如 "01"）
+                String suffix = parseSuffixFromName(name);  // 實作見下方
+
+                // typeMap : 可能 "RECIPE" => recipeValue, "TOOL" => toolValue
+                Map<String, String> typeMap = suffixMap.computeIfAbsent(suffix, k -> new HashMap<>());
+
+                if (name.endsWith("_EQP_OA")) {
+                    typeMap.put("TOOL", val);
+                } else {
+                    typeMap.put("RECIPE", val);
+                }
+            }
+
+            // 3.3) 為該 condition 下，每個 suffix 都組成一筆 OneConditionRecipeAndToolInfo
+            for (Map.Entry<String, Map<String, String>> suffixEntry : suffixMap.entrySet()) {
+                String suffix = suffixEntry.getKey();             // e.g. "01"
+                Map<String, String> typeMap = suffixEntry.getValue();
+
+                // 組成最終的 condition (e.g. "01_M01")
+                String finalCondition = condVal + "_M" + suffix;
+
+                // RECIPE (若沒對應到，就給空字串)
+                String recipeId = typeMap.getOrDefault("RECIPE", "");
+                // TOOL (若沒對應到，就給空字串)
+                String toolIdList = typeMap.getOrDefault("TOOL", "");
+
+                OneConditionRecipeAndToolInfo info = OneConditionRecipeAndToolInfo.builder()
+                        .condition(finalCondition)
+                        .toolIdList(toolIdList)
+                        .recipeId(recipeId)
+                        .build();
+
+                result.add(info);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * 範例：將 "RC_RECIPE_ID_01" 或 "RC_RECIPE_ID_01_EQP_OA" 中的 "01" 取出
+     * 若格式不同，請視情況調整。
+     */
+    private String parseSuffixFromName(String name) {
+        final String prefix = "RC_RECIPE_ID_";
+        if (!name.startsWith(prefix)) {
+            return "";
+        }
+        // 先移除 "RC_RECIPE_ID_"
+        String tmp = name.substring(prefix.length()); // 例如： "01_EQP_OA" 或 "01"
+        // 如果含有 "_EQP_OA"，我們就只取前面那部分
+        int idx = tmp.indexOf("_EQP_OA");
+        if (idx >= 0) {
+            return tmp.substring(0, idx);  // 只保留 "01"
+        }
+        return tmp; // 不含 "_EQP_OA" 就直接回傳
     }
 
     public List<RecipeGroupAndTool> getRecipeGroupAndToolInfo(String runcardId) {
