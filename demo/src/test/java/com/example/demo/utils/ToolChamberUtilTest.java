@@ -216,4 +216,143 @@ class ToolChamberUtilTest {
             assertEquals(Arrays.asList("B", "D"), expansions.get(2));
         }
     }
+
+    @Test
+    void parsingChamber_compoundCase1() {
+        List<String> tools = Arrays.asList("T1", "T2");
+        String recipeId = "xxx.xx-xxxx.xxxx-{c3}{c(2;5)}";
+        List<String> result = ToolChamberUtil.parsingChamber(tools, recipeId);
+
+        List<String> expected = Arrays.asList(
+                "T1#3", "T1#2", "T1#5",
+                "T2#3", "T2#2", "T2#5"
+        );
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void parsingChamber_compoundCase2() {
+        List<String> tools = Collections.singletonList("T1");
+        String recipeId = "xxx.xx-xxxx.xxxx-{c(3;4;5)}{c2}";
+        List<String> result = ToolChamberUtil.parsingChamber(tools, recipeId);
+
+        List<String> expected = Arrays.asList("T1#3", "T1#4", "T1#5", "T1#2");
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void parsingChamber_compoundCase3() {
+        // 1) {cE}  -> ["E"]
+        // 2) {cC}  -> ["C"]
+        // 3) {cD}  -> ["D"]
+        // 4) {c35} -> ["3","5"]
+        // 5) {c(1;4)} -> ["1","4"]
+        // expansions => ["E", "C", "D", "3", "5", "1", "4"]
+        List<String> tools = Arrays.asList("A", "B");
+        String recipeId = "xxx.xx-xxxx.xxxx-{cE}{cC}{cD}{c35}{c(1;4)}";
+        List<String> result = ToolChamberUtil.parsingChamber(tools, recipeId);
+
+        List<String> expected = Arrays.asList(
+                "A#E", "A#C", "A#D", "A#3", "A#5", "A#1", "A#4",
+                "B#E", "B#C", "B#D", "B#3", "B#5", "B#1", "B#4"
+        );
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void parsingChamber_compoundCase4() {
+        // {cD}       -> ["D"]
+        // {cE}       -> ["E"]
+        // {c(2;C)}   -> ["2","C"]
+        // {c35}      -> ["3","5"]
+        // {c14}      -> ["1","4"]
+        // expansions => ["D","E","2","C","3","5","1","4"]
+        List<String> tools = Collections.singletonList("X");
+        String recipeId = "xxx.xx-xxxx.xxxx-{cD}{cE}{c(2;C)}{c35}{c14}";
+        List<String> result = ToolChamberUtil.parsingChamber(tools, recipeId);
+
+        // 預期: X#D, X#E, X#2, X#C, X#3, X#5, X#1, X#4
+        List<String> expected = Arrays.asList("X#D", "X#E", "X#2", "X#C", "X#3", "X#5", "X#1", "X#4");
+        assertEquals(expected, result);
+    }
+
+    @Test
+    void parseChamberGrouped_compoundCase1() {
+        // {c3}{c(2;5)}
+        // => bracketExpansions = [ ["3"], ["2","5"] ]
+        List<String> tools = Arrays.asList("T1", "T2");
+        String recipeId = "xxx.xx-xxxx.xxxx-{c3}{c(2;5)}";
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
+        log.info("{c3}{c(2;5)} result: {}", result);
+        for (String t : tools) {
+            assertTrue(result.containsKey(t));
+            List<List<String>> expansions = result.get(t);
+            assertEquals(2, expansions.size());
+            // 第1個 bracket => ["3"]
+            assertEquals(Collections.singletonList("3"), expansions.get(0));
+            // 第2個 bracket => ["2", "5"]
+            assertEquals(Arrays.asList("2", "5"), expansions.get(1));
+        }
+    }
+
+    @Test
+    void parseChamberGrouped_compoundCase2() {
+        // {c(3;4;5)}{c2}
+        // => bracketExpansions = [ ["3","4","5"], ["2"] ]
+        List<String> tools = Collections.singletonList("T1");
+        String recipeId = "xxx.xx-xxxx.xxxx-{c(3;4;5)}{c2}";
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
+        log.info("{c(3;4;5)}{c2} result: {}", result);
+        assertTrue(result.containsKey("T1"));
+        List<List<String>> expansions = result.get("T1");
+        assertEquals(2, expansions.size());
+        assertEquals(Arrays.asList("3", "4", "5"), expansions.get(0));
+        assertEquals(Collections.singletonList("2"), expansions.get(1));
+    }
+
+    @Test
+    void parseChamberGrouped_compoundCase3() {
+        // {cE}{cC}{cD}{c35}{c(1;4)}
+        // => bracketExpansions = [
+        //    ["E"], ["C"], ["D"], ["3","5"], ["1","4"]
+        // ]
+        List<String> tools = Arrays.asList("A", "B");
+        String recipeId = "xxx.xx-xxxx.xxxx-{cE}{cC}{cD}{c35}{c(1;4)}";
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
+        log.info("{cE}{cC}{cD}{c35}{c(1;4)} result: {}", result);
+        for (String t : tools) {
+            assertTrue(result.containsKey(t));
+            List<List<String>> expansions = result.get(t);
+            // 5個 bracket
+            assertEquals(5, expansions.size());
+
+            assertEquals(Collections.singletonList("E"), expansions.get(0));
+            assertEquals(Collections.singletonList("C"), expansions.get(1));
+            assertEquals(Collections.singletonList("D"), expansions.get(2));
+            assertEquals(Arrays.asList("3", "5"), expansions.get(3));
+            assertEquals(Arrays.asList("1", "4"), expansions.get(4));
+        }
+    }
+
+    @Test
+    void parseChamberGrouped_compoundCase4() {
+        // {cD}{cE}{c(2;C)}{c35}{c14}
+        // => bracketExpansions = [
+        //   ["D"], ["E"], ["2","C"], ["3","5"], ["1","4"]
+        // ]
+        List<String> tools = Collections.singletonList("X");
+        String recipeId = "xxx.xx-xxxx.xxxx-{cD}{cE}{c(2;C)}{c35}{c14}";
+        Map<String, List<List<String>>> result = ToolChamberUtil.parseChamberGrouped(tools, recipeId);
+        log.info("{cD}{cE}{c(2;C)}{c35}{c14} result: {}", result);
+        assertTrue(result.containsKey("X"));
+        List<List<String>> expansions = result.get("X");
+        assertEquals(5, expansions.size());
+
+        assertEquals(Collections.singletonList("D"), expansions.get(0));
+        assertEquals(Collections.singletonList("E"), expansions.get(1));
+        assertEquals(Arrays.asList("2", "C"), expansions.get(2));
+        assertEquals(Arrays.asList("3", "5"), expansions.get(3));
+        assertEquals(Arrays.asList("1", "4"), expansions.get(4));
+    }
+
 }

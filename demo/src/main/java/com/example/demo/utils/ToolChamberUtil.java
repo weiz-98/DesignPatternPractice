@@ -30,31 +30,34 @@ public class ToolChamberUtil {
     }
 
     // --------------------------------------------------------------------------
-    // 1) parsingChamber: 將 recipeId 中每個大括號內容直接平舖 (適用於單純的 “平鋪” 功能)
+    // 1) parsingChamber: 將 recipeId 中每個大括號內容直接「平舖」展開
     // --------------------------------------------------------------------------
 
     /**
      * 依據 recipeId 中的 {} 格式，將 toolList 與擴展出來的 chamber 逐一組合（平鋪）。
      * 若無大括號，直接回傳原 toolList（不帶 #chamber）。
-     * <p>
+     *
      * 例如：
-     * (1) {c} => 最終會將每個 tool + "#%%"
-     * (2) {cEF} => 會展開成 E 與 F => tool + "#E" 以及 tool + "#F"
-     * (3) {cEF}{c134} => 會先萃取 E,F,1,3,4 平舖
-     * (4) {c(3;2)} => ["3","2"]
+     * (1) {c} => 對應 "%%"
+     * (2) {cEF} => 會展開成 ["E","F"]
+     * (3) {cEF}{c134} => => ["E","F","1","3","4"] (整體平舖)
+     * (4) {c(3;2)} => => ["3","2"]
      * (5) 無大括號 => 原樣不動
      */
     public static List<String> parsingChamber(List<String> toolList, String recipeId) {
         if (recipeId == null || !recipeId.contains("{")) {
+            // 無大括號，直接回傳不帶 chamber 的原 toolList
             return toolList;
         }
 
+        // 先把所有 { ... } 內容拆出來，再把它們平舖在同一個 expansions List 中
         List<String> expansions = extractExpansions(recipeId);
         if (expansions.isEmpty()) {
+            // 雖然有大括號，但沒拆到任何內容，就回傳原工具
             return toolList;
         }
 
-        // 依 “tool + # + expansion” 逐一組合
+        // 將 toolList x expansions 做 Cartesian product
         List<String> result = new ArrayList<>();
         for (String tool : toolList) {
             for (String exp : expansions) {
@@ -65,54 +68,37 @@ public class ToolChamberUtil {
     }
 
     /**
-     * 從 recipeId 中萃取所有大括號內容，再依不同格式 ("", "(...)", 其他) 拆分為多個字串。
+     * 從 recipeId 中萃取所有大括號內容，並根據其格式拆成平舖清單。
      *
-     * @return e.g. {cEF}{c134} => ["E","F","1","3","4"]
+     * @return 例如 {cEF}{c(3;2)} => ["E","F","3","2"]
      */
     private static List<String> extractExpansions(String recipeId) {
         List<String> expansions = new ArrayList<>();
         Matcher matcher = EXPANSION_PATTERN.matcher(recipeId);
         while (matcher.find()) {
-            // 取出大括號內的字串 (包含可能的 'c')
+            // 取出大括號內的字串 (可能含前導 'c')
             String content = matcher.group(1);
             // 移除前導的 'c'
             if (content.startsWith("c")) {
                 content = content.substring(1).trim();
             }
-            // 依格式決定如何拆
-            if (content.isEmpty()) {
-                // {c} => "%%"
-                expansions.add("%%");
-            } else if (content.startsWith("(") && content.endsWith(")")) {
-                // {c(3;2)} => -> ["3","2"]
-                String inner = content.substring(1, content.length() - 1);
-                for (String part : inner.split(";")) {
-                    String trimmed = part.trim();
-                    if (!trimmed.isEmpty()) {
-                        expansions.add(trimmed);
-                    }
-                }
-            } else {
-                // e.g. "EF" => => ["E","F"]
-                for (char ch : content.toCharArray()) {
-                    expansions.add(String.valueOf(ch));
-                }
-            }
+            // 使用與 parseChamberGrouped 相同的邏輯來拆解
+            expansions.addAll(parseOneBracketContent(content));
         }
         return expansions;
     }
 
     // --------------------------------------------------------------------------
-    // 2) parseChamberGrouped: 返回 AND/OR 結構
+    // 2) parseChamberGrouped: 返回 AND/OR 結構 (較複雜的多層結構)
     // --------------------------------------------------------------------------
 
     /**
      * 產生針對每個 tool 都有一組 bracketExpansions (AND)，
      * 其中每個 bracketExpansions[i] 內的字串列表表示 OR。
-     * <p>
+     *
      * 例如 {cEF}{c134} => bracketExpansions=[ ["E","F"], ["1","3","4"] ]，
      * 對 toolList 中每個 tool 都返回相同的 bracketExpansions。
-     * <p>
+     *
      * 若 recipeId 無大括號，代表不限定 chamber => expansions=[ [ ] ] (空 => 只檢查 tool 即可)。
      */
     public static Map<String, List<List<String>>> parseChamberGrouped(List<String> toolList, String recipeId) {
@@ -121,10 +107,10 @@ public class ToolChamberUtil {
             return buildGroupedResultForNoBracket(toolList);
         }
 
-        // 萃取 bracketExpansions => AND
+        // 有大括號 => 萃取 bracketExpansions => AND
         List<List<String>> bracketExpansions = extractBracketExpansionsGrouped(recipeId);
 
-        // 每個 tool 都對應相同 bracketExpansions
+        // 每個 tool 都對應相同 bracketExpansions (AND 結構)
         Map<String, List<List<String>>> result = new HashMap<>();
         for (String tool : toolList) {
             result.put(tool, bracketExpansions);
@@ -133,8 +119,8 @@ public class ToolChamberUtil {
     }
 
     /**
-     * 無大括號時，對於每個 tool => expansions=[ [ ] ]，表示一個 bracket (AND=1)，
-     * 且其中 OR list 為 empty => 代表不指定 chamber。
+     * 無大括號時，對於每個 tool => expansions=[ [ ] ]，
+     * 表示一個 bracket (AND=1)，其中 OR list 為 empty => 代表不指定 chamber。
      */
     private static Map<String, List<List<String>>> buildGroupedResultForNoBracket(List<String> toolList) {
         Map<String, List<List<String>>> result = new HashMap<>();
@@ -148,32 +134,39 @@ public class ToolChamberUtil {
     }
 
     /**
-     * 萃取多個大括號 => 每個大括號內的字元列表就是 OR => 彼此之間 AND。
-     * e.g. {cEF}{c134} => bracketExpansions=[ ["E","F"], ["1","3","4"] ]。
+     * 萃取多個大括號 => 每個大括號內的字串列表就是 OR => 彼此之間 AND。
+     * 例如 {cEF}{c134} => bracketExpansions=[ ["E","F"], ["1","3","4"] ]。
      */
     private static List<List<String>> extractBracketExpansionsGrouped(String recipeId) {
         List<List<String>> bracketExpansions = new ArrayList<>();
         Matcher matcher = EXPANSION_PATTERN.matcher(recipeId);
         while (matcher.find()) {
+            // 取出大括號內的字串 (可能含前導 'c')
             String content = matcher.group(1);
             if (content.startsWith("c")) {
                 content = content.substring(1).trim();
             }
-            bracketExpansions.add(parseOneBracketForGroup(content));
+            // 解析成 OR 列表
+            bracketExpansions.add(parseOneBracketContent(content));
         }
         return bracketExpansions;
     }
 
     /**
-     * 解析單一大括號 => OR 列表。
-     * - 若 content="" => ["%%"]
-     * - 若 content="(3;2)" => => ["3","2"]
-     * - 否則逐字拆
+     * 單一大括號的內容，拆解出對應的 OR 清單。
+     *
+     * 規則：
+     * - 若 content="" => ["%%"] (對應 {c} )
+     * - 若 content="(3;2)" => => ["3","2"] (用 ';' 分隔)
+     * - 若 content="EF" => => ["E","F"] (逐字拆)
+     * - 若 content="35" => => ["3","5"] (逐字拆)
      */
-    private static List<String> parseOneBracketForGroup(String content) {
+    private static List<String> parseOneBracketContent(String content) {
+        // 特殊 case: {c} => "%%"
         if (content.isEmpty()) {
             return Collections.singletonList("%%");
         }
+        // case: {c(...)} => 用 ';' 分隔
         if (content.startsWith("(") && content.endsWith(")")) {
             String inner = content.substring(1, content.length() - 1);
             List<String> list = new ArrayList<>();
@@ -185,11 +178,12 @@ public class ToolChamberUtil {
             }
             return list;
         }
-        // e.g. "EF" => ["E","F"]
+        // case: 其他 (EF, 35, C2, etc.) => 逐字拆
         List<String> list = new ArrayList<>();
         for (char ch : content.toCharArray()) {
             list.add(String.valueOf(ch));
         }
         return list;
     }
+
 }
