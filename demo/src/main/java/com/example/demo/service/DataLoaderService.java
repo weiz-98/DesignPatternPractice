@@ -1,9 +1,6 @@
 package com.example.demo.service;
 
-import com.example.demo.po.ForwardProcess;
-import com.example.demo.po.InhibitionCheckStatus;
-import com.example.demo.po.RecipeGroupCheckBlue;
-import com.example.demo.po.WaferCondition;
+import com.example.demo.po.*;
 import com.example.demo.rule.RuleDao;
 import com.example.demo.rule.RuncardInfoDao;
 import com.example.demo.vo.*;
@@ -92,7 +89,7 @@ public class DataLoaderService {
      * 3. 根據 moduleList 取得 RuncardRawInfo
      * 這裡移除對「時間範圍」的檢查，因新版 RuncardRawInfo 沒有日期欄位
      */
-    public List<RuncardRawInfo> getMockRUncardRawInfoList(List<String> sectionIds, LocalDateTime startTime, LocalDateTime endTime) {
+    public Optional<List<RuncardRawInfo>> getQueryRuncardBatch(List<String> sectionIds, LocalDateTime startTime, LocalDateTime endTime) {
         // Mock 生成一些 RuncardRawInfo
         List<RuncardRawInfo> mockRuncardRawInfos = new ArrayList<>();
 
@@ -147,7 +144,7 @@ public class DataLoaderService {
         // 因此只印 log
         log.info("[getMockRUncardRawInfoList] moduleList={}, start={}, end={}, totalCount={}",
                 sectionIds, startTime, endTime, mockRuncardRawInfos.size());
-        return mockRuncardRawInfos;
+        return Optional.of(mockRuncardRawInfos);
     }
 
     public List<OneConditionRecipeAndToolInfo> getRecipeAndToolInfo(String runcardId) {
@@ -255,4 +252,19 @@ public class DataLoaderService {
         return opt.orElseGet(ArrayList::new);
     }
 
+    public List<ArrivalStatus> getRuncardArrivalStatuses(List<String> runcardIds) {
+        if (runcardIds == null || runcardIds.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<ArrivalStatus> mockList = new ArrayList<>();
+        for (String rcId : runcardIds) {
+            ArrivalStatus status = ArrivalStatus.builder()
+                    .runcardId(rcId)
+                    .arrivalTime(LocalDateTime.now().toString())
+                    .opeNo("OPE-10")
+                    .build();
+            mockList.add(status);
+        }
+        return mockList;
+    }
 }

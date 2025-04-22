@@ -1,5 +1,6 @@
 package com.example.demo.service;
 
+import com.example.demo.po.ArrivalStatus;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -8,6 +9,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -17,32 +21,31 @@ public class RuncardFlowService {
     private final DataLoaderService dataLoaderService;
     private final RuncardHandlerService runcardHandlerService;
     private final RunCardParserService runCardParserService;
-    private final LocalDateTime startTime = LocalDateTime.now();
-    private final LocalDateTime endTime = startTime.minusWeeks(2);
 
-    public void process() {
-        log.info("Starting cron job at :{}", LocalDateTime.now());
-
-        List<ModuleInfo> moduleInfoList = dataLoaderService.getModules();
-        log.info("Found {} modules to process.", moduleInfoList.size());
-
-        moduleInfoList.forEach(this::processModule);
-    }
-
-    public void processModule(ModuleInfo moduleInfo) {
-        log.info("Processing module: {}, sections: {}", moduleInfo.getModule(), moduleInfo.getSectionIds());
-        List<String> sectionIds = moduleInfo.getSectionIds();
+    public void processRuncardBatch(RuncardParsingRequest runcardParsingRequest) {
+        List<String> sectionIds = runcardParsingRequest.getSectionIds();
+        LocalDateTime startTime = runcardParsingRequest.getStartTime();
+        LocalDateTime endTime = runcardParsingRequest.getEndTime();
 
         List<ToolRuleGroup> toolRuleGroups = dataLoaderService.getToolRuleGroups(sectionIds);
-        log.info("Retrieved {} ToolRuleGroups for module: {}", toolRuleGroups.size(), moduleInfo.getModule());
+        log.info("Retrieved {} ToolRuleGroups for sections : {} between {} and {}", toolRuleGroups.size(), sectionIds, startTime, endTime);
 
-        List<RuncardRawInfo> runcardRawInfos = dataLoaderService.getMockRUncardRawInfoList(sectionIds, startTime, endTime);
-        log.info("Retrieved {} Runcard Raw Data for module: {}", runcardRawInfos.size(), moduleInfo.getModule());
+        Optional<List<RuncardRawInfo>> optionalRuncardRawInfos = dataLoaderService.getQueryRuncardBatch(sectionIds, startTime, endTime);
+
+        if (optionalRuncardRawInfos.isEmpty()) {
+            log.info("No Runcard found in {} between {} and {}", sectionIds, startTime, endTime);
+            return;
+        }
+        List<RuncardRawInfo> runcardRawInfos = optionalRuncardRawInfos.get();
+
+        log.info("Retrieved {} Runcard Raw Data for sections : {} between {} and {}", runcardRawInfos.size(), sectionIds, startTime, endTime);
 
         // 建立該 module 下所有 Runcard mapping 到的所有 rules
         List<RuncardMappingInfo> oneModuleMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups);
 
         List<OneRuncardRuleResult> oneModuleRuleResult = processMappingInfos(oneModuleMappingInfos);
+
+        saveOneModuleRuleResult(oneModuleRuleResult);
     }
 
     public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
@@ -72,6 +75,24 @@ public class RuncardFlowService {
                     .build());
         });
         return oneModuleRuleResult;
+    }
+
+    public void saveOneModuleRuleResult(List<OneRuncardRuleResult> oneModuleRuleResult) {
+        List<String> runCardList = oneModuleRuleResult.stream()
+                .map(OneRuncardRuleResult::getRuncardId)
+                .toList();
+        List<ArrivalStatus> arrivalStatuses = dataLoaderService.getRuncardArrivalStatuses(runCardList);
+        Map<String, Integer> runCardArrivalMap = arrivalStatuses.stream()
+                .collect(Collectors.toMap(ArrivalStatus::getRuncardId, arrivalStatus -> Integer.parseInt(arrivalStatus.getArrivalTime())));
+
+        oneModuleRuleResult.forEach(oneRuncardRuleResult -> {
+            String runcardId = oneRuncardRuleResult.getRuncardId();
+            // -1 代表未到站
+            int arrivalHours = runCardArrivalMap.getOrDefault(runcardId, -1);
+            log.info("RuncardID: {} arrivalHours {}", runcardId, arrivalHours);
+
+            // save mongo db
+        });
     }
 }
 
