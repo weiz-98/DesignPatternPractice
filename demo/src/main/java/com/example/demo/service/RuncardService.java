@@ -14,7 +14,7 @@ import java.util.List;
 public class RuncardService {
     private final RuncardFlowService runcardFlowService;
 
-    public List<RuncardParsingResult> refresh(RuncardParsingRequest runcardParsingRequest){
+    public List<RuncardParsingResult> refresh(RuncardParsingRequest runcardParsingRequest) {
         runcardFlowService.processRuncardBatch(runcardParsingRequest);
         return List.of(RuncardParsingResult.builder().build());
     }

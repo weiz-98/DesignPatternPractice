@@ -46,8 +46,8 @@ class RuncardHandlerServiceTest {
 
         // 建立 dummy ToolRuleGroup
         // GroupA，若有一筆 tool匹配 "JDTM16#E" 與 "JDTM20#F"
-        ToolInfo toolA = new ToolInfo("JDTM16", "E");
-        ToolInfo toolB = new ToolInfo("JDTM20", "F");
+        ToolInfo toolA = new ToolInfo("DeptName1", "SecName2", "JDTM16", "E");
+        ToolInfo toolB = new ToolInfo("DeptName1", "SecName2", "JDTM20", "F");
         ToolRuleGroup groupA = new ToolRuleGroup();
         groupA.setGroupName("GroupA");
         groupA.setTools(Arrays.asList(toolA, toolB));
@@ -57,7 +57,7 @@ class RuncardHandlerServiceTest {
         groupA.setRules(Collections.singletonList(ruleA));
 
         // GroupB，假設匹配 "JDTM17#E"
-        ToolInfo toolC = new ToolInfo("JDTM17", "E");
+        ToolInfo toolC = new ToolInfo("DeptName1", "SecName2", "JDTM17", "E");
         ToolRuleGroup groupB = new ToolRuleGroup();
         groupB.setGroupName("GroupB");
         groupB.setTools(Collections.singletonList(toolC));

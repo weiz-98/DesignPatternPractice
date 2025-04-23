@@ -8,6 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ToolInfo {
+    private String DeptName;
+    private String SecName;
     private String toolId;
     private String chamberId;
 }
