@@ -92,6 +92,14 @@ public class RuncardFlowService {
             log.info("RuncardID: {} arrivalHours {}", runcardId, arrivalHours);
 
             // save mongo db
+            RuncardResult runcardResult = RuncardResult.builder()
+                    .runcardId(runcardId)
+                    .approver(null)
+                    .hasApproved(false)
+                    .latestCheckDt(LocalDateTime.now())
+                    .arrivalHours(arrivalHours)
+                    .conditions(oneRuncardRuleResult.getOneConditionToolRuleGroupResults())
+                    .build();
         });
     }
 }

@@ -120,8 +120,8 @@ public class RuleForwardProcess implements IRuleCheck {
         boolean pass = passRecipe && passTool;
         int lamp = pass ? 1 : 3;
 
-        log.info("RuncardID: {} Condition: {} - passRecipe={}, passTool={}, finalLamp={}",
-                runcardRawInfo.getRuncardId(), cond, passRecipe, passTool, lamp);
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe={}, passTool={}",
+                runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("result", lamp);
@@ -145,7 +145,7 @@ public class RuleForwardProcess implements IRuleCheck {
         info.setResult(lamp);
         info.setDetail(detailMap);
 
-        log.info("RuncardID: {} Condition: {} - RuleForwardProcess check done, lamp={}",
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check done, lamp={}",
                 runcardRawInfo.getRuncardId(), cond, lamp);
 
         return info;

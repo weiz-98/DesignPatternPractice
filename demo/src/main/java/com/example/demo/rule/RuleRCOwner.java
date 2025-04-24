@@ -79,8 +79,8 @@ public class RuleRCOwner implements IRuleCheck {
         boolean found = employeeIds.contains(issuingEngineer);
         int lamp = found ? 2 : 1;
 
-        log.info("RuncardID: {} Condition: {} - RCOwner check => found={}, finalLamp={}",
-                runcardRawInfo.getRuncardId(), cond, found, lamp);
+        log.info("RuncardID: {} Condition: {} - RCOwner check => found={}",
+                runcardRawInfo.getRuncardId(), cond, found);
 
         // sections
         Map<String, String> sectionsMap = RuleUtil.parseStringMap(settings.get("sections"));
@@ -99,7 +99,7 @@ public class RuleRCOwner implements IRuleCheck {
         info.setResult(lamp);
         info.setDetail(detailMap);
 
-        log.info("RuncardID: {} Condition: {} - RuleRCOwner done, lamp={}",
+        log.info("RuncardID: {} Condition: {} - RCOwner check done, lamp={}",
                 runcardRawInfo.getRuncardId(), cond, lamp);
 
         return info;
