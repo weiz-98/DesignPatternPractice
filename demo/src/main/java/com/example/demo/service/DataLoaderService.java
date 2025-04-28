@@ -182,12 +182,21 @@ public class DataLoaderService {
             Map<String, Map<String, String>> suffixMap = new LinkedHashMap<>();
 
             for (MultipleRecipeData mrd : thisConditionList) {
-                String name = mrd.getName();   // e.g. "RC_RECIPE_ID_01", "RC_RECIPE_ID_01_EQP_OA"
-                String val = mrd.getValue();
-                // 取出數字後綴（如 "01"）
-                String suffix = parseSuffixFromName(name);  // 實作見下方
+                String name = mrd.getName();   // 可能是 "RC_RECIPE_ID_01" 或 "M_FOLLOW_CHUCK_DEDICATION"
 
-                // typeMap : 可能 "RECIPE" => recipeValue, "TOOL" => toolValue
+                // ★ 若不是預期 pattern，直接跳過，不納入後續組裝
+                if (name == null || !name.startsWith("RC_RECIPE_ID_")) {
+                    continue;
+                }
+
+                String val = mrd.getValue();
+                String suffix = parseSuffixFromName(name);  // 取出 "01" ...
+
+                // 若 suffix 為空字串代表格式有誤，也跳過
+                if (suffix.isEmpty()) {
+                    continue;
+                }
+
                 Map<String, String> typeMap = suffixMap.computeIfAbsent(suffix, k -> new HashMap<>());
 
                 if (name.endsWith("_EQP_OA")) {
