@@ -67,10 +67,31 @@ public class RuncardHandlerService {
 
             // 檢查該 group 是否有 tool#chamber 與當前 toolChambers match
             boolean groupMatched = false;
+
             for (String tc : toolChambers) {
+                // 先拆出條件端的 tool 與 chamber
+                String tcTool = tc.contains("#") ? tc.substring(0, tc.indexOf('#')) : tc;
+                String tcChamber = tc.contains("#") ? tc.substring(tc.indexOf('#') + 1) : "";
+
                 for (ToolInfo ti : group.getTools()) {
-                    String fullToolChamber = ti.getToolId() + "#" + ti.getChamberId();
-                    if (fullToolChamber.equals(tc)) {
+                    String gTool = ti.getToolId();
+                    String gChamber = ti.getChamberId() == null ? "" : ti.getChamberId().trim();
+
+                    /* 比對規則
+                     * 1) 若 group 端 chamber  為空字串 ⇒ 代表僅比對 toolId
+                     * 2) 若條件端 chamber 為 "%%"   ⇒ 代表 wildcard，只需 toolId 相同
+                     * 3) 其餘           ⇒ toolId 與 chamber 皆需相同
+                     */
+                    boolean matched;
+                    if (gChamber.isEmpty()) {
+                        matched = gTool.equals(tcTool);
+                    } else if ("%%".equals(tcChamber)) {
+                        matched = gTool.equals(tcTool);
+                    } else {
+                        matched = gTool.equals(tcTool) && gChamber.equals(tcChamber);
+                    }
+
+                    if (matched) {
                         groupMatched = true;
                         break;
                     }
@@ -78,14 +99,10 @@ public class RuncardHandlerService {
                 if (groupMatched) break;
             }
 
-            if (groupMatched) {
-                // 代表這個 group 裡面有至少一個 tool#chamber 與當前 condition 相符
-                if (group.getGroupName() != null && group.getRules() != null) {
-                    resultMap.put(group.getGroupName(), group.getRules());
-                }
+            if (groupMatched && group.getGroupName() != null && group.getRules() != null) {
+                resultMap.put(group.getGroupName(), group.getRules());
             }
         }
-
         return resultMap;
     }
 
@@ -95,17 +112,17 @@ public class RuncardHandlerService {
             List<OneConditionRecipeAndToolInfo> recipeInfos
     ) {
         if (runcardRawInfo == null) {
-            log.error("[RuncardHandlerService.buildRuncardMappingInfo] RuncardRawInfo is null, unable to proceed");
+            log.error("RuncardRawInfo is null, unable to proceed");
             return new RuncardMappingInfo(null, Collections.emptyList());
         }
 
         if (toolRuleGroups == null || toolRuleGroups.isEmpty()) {
-            log.error("[RuncardHandlerService.buildRuncardMappingInfo] ToolGroups is null or empty, no rule mapping possible");
+            log.error("ToolGroups is null or empty, no rule mapping possible");
             return new RuncardMappingInfo(runcardRawInfo, Collections.emptyList());
         }
 
         if (recipeInfos == null || recipeInfos.isEmpty()) {
-            log.error("[RuncardHandlerService.buildRuncardMappingInfo] RecipeAndToolInfo is null or empty, no condition to process");
+            log.error("RecipeAndToolInfo is null or empty, no condition to process");
             return new RuncardMappingInfo(runcardRawInfo, Collections.emptyList());
         }
         return null;

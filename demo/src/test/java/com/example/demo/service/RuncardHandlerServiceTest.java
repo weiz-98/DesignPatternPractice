@@ -162,4 +162,63 @@ class RuncardHandlerServiceTest {
         assertEquals(1, groupBRules.size());
         assertEquals("ruleB", groupBRules.getFirst().getRuleType());
     }
+
+    // ---------- 新增覆蓋特殊比對邏輯 ----------
+
+    /** Group 端 chamber="" ⇒ 只比對 toolId */
+    @Test
+    void groupChamberEmpty_onlyToolIdMatch() {
+        // toolChambers 送入 "AAA#B"
+        List<String> tcs = List.of("AAA#B");
+
+        // toolGroup 內工具 AAA, chamber="" → 應視為匹配
+        ToolInfo gTool = new ToolInfo("Dept", "Sec", "AAA", "");   // ★ chamber 空
+        ToolRuleGroup grp = new ToolRuleGroup();
+        grp.setGroupName("G_EMPTY");
+        grp.setTools(List.of(gTool));
+        Rule r = new Rule(); r.setRuleType("ruleEmpty");
+        grp.setRules(List.of(r));
+
+        Map<String, List<Rule>> res = runcardHandlerService.mappingRules(tcs, List.of(grp));
+        assertEquals(1, res.size());
+        assertTrue(res.containsKey("G_EMPTY"));
+    }
+
+    /** 條件端 #%% ⇒ wildcard，只要 toolId 一致即可 */
+    @Test
+    void tcWildcardPercentPercent_matchAnyChamber() {
+        // toolChamber 帶 wildcard
+        List<String> tcs = List.of("BBB#%%");
+
+        // group 有 BBB#X
+        ToolInfo gTool = new ToolInfo("D", "S", "BBB", "X");
+        ToolRuleGroup grp = new ToolRuleGroup();
+        grp.setGroupName("G_WC");
+        grp.setTools(List.of(gTool));
+        Rule r = new Rule(); r.setRuleType("ruleWC");
+        grp.setRules(List.of(r));
+
+        Map<String, List<Rule>> res = runcardHandlerService.mappingRules(tcs, List.of(grp));
+        assertEquals(1, res.size());
+        assertTrue(res.containsKey("G_WC"));
+    }
+
+    /** 兩邊皆指定 chamber 且不同 ⇒ 不應匹配 */
+    @Test
+    void requireBothToolAndChamberEqual() {
+        // toolChamber: CCC#A
+        List<String> tcs = List.of("CCC#A");
+
+        // group 有 CCC#B → 不該匹配
+        ToolInfo gTool = new ToolInfo("D", "S", "CCC", "B");
+        ToolRuleGroup grp = new ToolRuleGroup();
+        grp.setGroupName("G_STRICT");
+        grp.setTools(List.of(gTool));
+        Rule r = new Rule(); r.setRuleType("ruleStrict");
+        grp.setRules(List.of(r));
+
+        Map<String, List<Rule>> res = runcardHandlerService.mappingRules(tcs, List.of(grp));
+        assertTrue(res.isEmpty(), "chamber 不同，應該不匹配");
+    }
+
 }

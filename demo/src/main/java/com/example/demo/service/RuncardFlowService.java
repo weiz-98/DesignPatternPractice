@@ -7,10 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -22,7 +19,7 @@ public class RuncardFlowService {
     private final RuncardHandlerService runcardHandlerService;
     private final RunCardParserService runCardParserService;
 
-    public void processRuncardBatch(RuncardParsingRequest runcardParsingRequest) {
+    public List<RuncardParsingResult> processRuncardBatch(RuncardParsingRequest runcardParsingRequest) {
         List<String> sectionIds = runcardParsingRequest.getSectionIds();
         LocalDateTime startTime = runcardParsingRequest.getStartTime();
         LocalDateTime endTime = runcardParsingRequest.getEndTime();
@@ -34,7 +31,7 @@ public class RuncardFlowService {
 
         if (optionalRuncardRawInfos.isEmpty()) {
             log.info("No Runcard found in {} between {} and {}", sectionIds, startTime, endTime);
-            return;
+            return List.of(RuncardParsingResult.builder().build());
         }
         List<RuncardRawInfo> runcardRawInfos = optionalRuncardRawInfos.get();
 
@@ -45,7 +42,9 @@ public class RuncardFlowService {
 
         List<OneRuncardRuleResult> oneModuleRuleResult = processMappingInfos(oneModuleMappingInfos);
 
-        saveOneModuleRuleResult(oneModuleRuleResult);
+        List<RuncardResult> runcardResults = saveOneModuleRuleResult(oneModuleRuleResult);
+        return buildParsingResults(runcardRawInfos, runcardResults);
+
     }
 
     public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
@@ -77,13 +76,15 @@ public class RuncardFlowService {
         return oneModuleRuleResult;
     }
 
-    public void saveOneModuleRuleResult(List<OneRuncardRuleResult> oneModuleRuleResult) {
+    public List<RuncardResult> saveOneModuleRuleResult(List<OneRuncardRuleResult> oneModuleRuleResult) {
         List<String> runCardList = oneModuleRuleResult.stream()
                 .map(OneRuncardRuleResult::getRuncardId)
                 .toList();
         List<ArrivalStatus> arrivalStatuses = dataLoaderService.getRuncardArrivalStatuses(runCardList);
         Map<String, Integer> runCardArrivalMap = arrivalStatuses.stream()
                 .collect(Collectors.toMap(ArrivalStatus::getRuncardId, arrivalStatus -> Integer.parseInt(arrivalStatus.getArrivalTime())));
+
+        List<RuncardResult> results = new ArrayList<>();
 
         oneModuleRuleResult.forEach(oneRuncardRuleResult -> {
             String runcardId = oneRuncardRuleResult.getRuncardId();
@@ -100,7 +101,49 @@ public class RuncardFlowService {
                     .arrivalHours(arrivalHours)
                     .conditions(oneRuncardRuleResult.getOneConditionToolRuleGroupResults())
                     .build();
+
+            results.add(runcardResult);
         });
+        return results;
     }
+
+    public List<RuncardParsingResult> buildParsingResults(
+            List<RuncardRawInfo> rawInfos,
+            List<RuncardResult> runcardResults) {
+
+
+        Map<String, RuncardResult> resultMap =
+                runcardResults.stream()
+                        .collect(Collectors.toMap(RuncardResult::getRuncardId, r -> r));
+
+        LocalDateTime now = LocalDateTime.now();
+
+        return rawInfos.stream()
+                .<RuncardParsingResult>map(raw -> {
+                    RuncardResult rr = resultMap.get(raw.getRuncardId());
+                    return buildParsing(raw, rr);
+                })
+                .toList();
+    }
+
+    private RuncardParsingResult buildParsing(RuncardRawInfo raw, RuncardResult rr) {
+
+        return RuncardParsingResult.builder()
+                .runcardId(raw.getRuncardId())
+                .issuingEngineer(raw.getIssuingEngineer())
+                .lotId(raw.getLotId())
+                .partId(raw.getPartId())
+                .status(raw.getStatus())
+                .purpose(raw.getPurpose())
+                .supervisorAndDepartment(raw.getSupervisorAndDepartment())
+                .numberOfPieces(raw.getNumberOfPieces())
+                .holdAtOperNo(raw.getHoldAtOperNo())
+                .arrivalHours(Optional.ofNullable(rr).map(RuncardResult::getArrivalHours).orElse(-1))
+                .latestCheckDt(Optional.ofNullable(rr).map(RuncardResult::getLatestCheckDt).orElse(LocalDateTime.now()))
+                .conditions(Optional.ofNullable(rr).map(RuncardResult::getConditions).orElse(Collections.emptyList()))
+                .hasApproved(Optional.ofNullable(rr).map(RuncardResult::getHasApproved).orElse(false))
+                .build();
+    }
+
 }
 
