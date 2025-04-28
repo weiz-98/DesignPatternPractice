@@ -3,6 +3,7 @@ package com.example.demo.rule;
 import com.example.demo.po.InhibitionCheckStatus;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -81,7 +82,15 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check => allY={}",
                 runcardRawInfo.getRuncardId(), cond, allY);
 
+        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                .stream()
+                .filter(o -> cond.equals(o.getCondition()))
+                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .findFirst()
+                .orElse("");
+
         Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("recipeId", recipeId);
         detailMap.put("result", lamp);
         detailMap.put("inhibitionCheck", allY);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());

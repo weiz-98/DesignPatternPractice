@@ -3,6 +3,7 @@ package com.example.demo.rule;
 import com.example.demo.po.WaferCondition;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -83,7 +84,15 @@ public class RuleWaferCondition implements IRuleCheck {
         log.info("RuncardID: {} Condition: {} - WaferCondition check => uniqueCount={}, wfrQty={}",
                 runcardRawInfo.getRuncardId(), cond, uniqueCount, wfrQty);
 
+        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                .stream()
+                .filter(o -> cond.equals(o.getCondition()))
+                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .findFirst()
+                .orElse("");
+
         Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("recipeId", recipeId);
         detailMap.put("result", lamp);
         detailMap.put("waferCondition", isEqual);
         detailMap.put("wfrQty", wfrQty);
