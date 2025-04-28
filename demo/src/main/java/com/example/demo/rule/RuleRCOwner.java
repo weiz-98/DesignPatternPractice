@@ -75,8 +75,13 @@ public class RuleRCOwner implements IRuleCheck {
         List<String> employeeIds = new ArrayList<>(namesMap.values());
         List<String> employeeNames = new ArrayList<>(namesMap.keySet());
 
-        String issuingEngineer = runcardRawInfo.getIssuingEngineer();
-        boolean found = employeeIds.contains(issuingEngineer);
+        // issuingEngineer，格式可能為 "Dept/EmpId/EmpName"
+        String engineerName = runcardRawInfo.getIssuingEngineer();
+        if (engineerName != null && engineerName.contains("/")) {
+            engineerName = engineerName.substring(engineerName.lastIndexOf('/') + 1).trim();
+        }
+
+        boolean found = employeeNames.contains(engineerName);
         int lamp = found ? 2 : 1;
 
         log.info("RuncardID: {} Condition: {} - RCOwner check => found={}",
@@ -88,7 +93,7 @@ public class RuleRCOwner implements IRuleCheck {
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("result", lamp);
-        detailMap.put("issuingEngineer", issuingEngineer);
+        detailMap.put("issuingEngineer", engineerName);
         detailMap.put("configuredRCOwnerOrg", sectionNames);
         detailMap.put("configuredRCOwnerEmployeeId", employeeIds);
         detailMap.put("configuredRCOwnerName", employeeNames);

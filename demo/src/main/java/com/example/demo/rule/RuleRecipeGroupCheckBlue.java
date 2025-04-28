@@ -4,10 +4,7 @@ import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.utils.ToolChamberUtil;
-import com.example.demo.vo.RecipeGroupAndTool;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -80,9 +77,15 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         }
 
         // 3) 找出該 cond 對應的 RecipeGroupsAndToolInfo
-        List<RecipeGroupAndTool> groupsAndToolInfos = dataLoaderService.getRecipeGroupAndToolInfo(runcardRawInfo.getRuncardId());
+        List<RecipeGroupAndTool> groupsAndToolInfos =
+                dataLoaderService.getRecipeGroupAndToolInfo(runcardRawInfo.getRuncardId());
         List<RecipeGroupAndTool> filteredGroups = groupsAndToolInfos.stream()
-                .filter(rgt -> cond.equals(rgt.getCondition()))
+                .filter(rgt -> {
+                    if (cond.contains("_M")) {          // ★ modified：如 01_M01
+                        return cond.startsWith(rgt.getCondition()); // 取前半段 "01"
+                    }
+                    return cond.equals(rgt.getCondition());
+                })
                 .toList();
         if (filteredGroups.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No RecipeGroupsAndToolInfo for condition",
@@ -101,9 +104,44 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
 
         // 這邊按理來說只會有一筆(mapping 到指定的 condition)
         RecipeGroupAndTool rgtInfo = filteredGroups.getFirst();
-        String toolIdListStr = rgtInfo.getToolIdList();  // e.g. "JDTM16,JDTM17,JDTM20"
         String recipeGroupId = rgtInfo.getRecipeGroupId();
         String recipeId = rgtInfo.getRecipeId();         // e.g. "xxx.xx-xxxx.xxxx-{cEF}{c134}"
+
+        // 依 cond 是否為 XX_MXX 決定 toolIdList 來源
+        String toolIdListStr;
+        if (cond.contains("_M")) {
+            // cond 範例: "01_M01" => baseCond="01", suffix="01"
+            String[] parts = cond.split("_M", 2);
+            String baseCond = parts[0];
+            String suffix = parts.length == 2 ? parts[1] : "";
+
+            // 從 MultipleRecipeData 找 RC_RECIPE_ID_{suffix}_EQP_OA
+            toolIdListStr = "";
+            List<MultipleRecipeData> mrdList =
+                    dataLoaderService.getMultipleRecipeData(runcardRawInfo.getRuncardId());
+            for (MultipleRecipeData mrd : mrdList) {
+                if (baseCond.equals(mrd.getCondition())
+                        && mrd.getName().startsWith("RC_RECIPE_ID_")
+                        && mrd.getName().endsWith("_EQP_OA")) {
+
+                    // 取出 {suffix}
+                    String extracted = mrd.getName()
+                            .substring("RC_RECIPE_ID_".length(),
+                                    mrd.getName().length() - "_EQP_OA".length());
+                    if (suffix.equals(extracted)) {
+                        toolIdListStr = mrd.getValue(); // 找到對應 TOOL 清單
+                        break;
+                    }
+                }
+            }
+            // 若 MultipleRecipeData 找不到，回退用 RecipeGroupAndTool 內建值
+            if (toolIdListStr == null || toolIdListStr.isEmpty()) {
+                toolIdListStr = rgtInfo.getToolIdList();
+            }
+        } else {
+            // 舊邏輯：直接採用 RecipeGroupAndTool.toolIdList
+            toolIdListStr = rgtInfo.getToolIdList();
+        }
 
         // 4) 將 toolIdList 解析成 List<String>
         List<String> toolIds = ToolChamberUtil.splitToolList(toolIdListStr);
@@ -146,7 +184,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
                         } else {
                             boolean found = checkBlueList.stream().anyMatch(blue ->
                                     blue.getToolId().equals(tool)
-                                            && blue.getChamberId().equals(chamber)
+                                            && blue.getChamberId().equals("#" + chamber)
                                             && "1".equals(blue.getReleaseFlag())
                                             && "1".equals(blue.getEnableFlag())
                             );

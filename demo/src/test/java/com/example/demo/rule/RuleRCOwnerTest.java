@@ -73,13 +73,13 @@ class RuleRCOwnerTest {
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-123");
-        rc.setIssuingEngineer("ENG-A");
+        rc.setIssuingEngineer("SEC1/ENG-A/Alice");
         rc.setRuncardId("RC-001");
 
         ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(2, info.getResult());
-        assertEquals("ENG-A", info.getDetail().get("issuingEngineer"));
+        assertEquals("Alice", info.getDetail().get("issuingEngineer"));
 
         List<String> empIds = (List<String>) info.getDetail().get("configuredRCOwnerEmployeeId");
         assertTrue(empIds.contains("ENG-A"));
@@ -107,13 +107,13 @@ class RuleRCOwnerTest {
 
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-999"); // => startWithTM=false => containProd => shouldCheck= false => pass
-        rc.setIssuingEngineer("ENG-X");
+        rc.setIssuingEngineer("SEC2/ENG-X/Charlie");
         rc.setRuncardId("RC-001");
 
         ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
 
         assertEquals(1, info.getResult());
-        assertEquals("ENG-X", info.getDetail().get("issuingEngineer"));
+        assertEquals("Charlie", info.getDetail().get("issuingEngineer"));
 
         List<String> empIds = (List<String>) info.getDetail().get("configuredRCOwnerEmployeeId");
         assertTrue(empIds.contains("ENG-A"));
@@ -122,5 +122,41 @@ class RuleRCOwnerTest {
 
         List<String> sec = (List<String>) info.getDetail().get("configuredRCOwnerOrg");
         assertEquals("sectionX", sec.getFirst());
+    }
+
+    /** issuingEngineer 僅單一字串，無 '/'，應直接比對 */
+    @Test
+    void check_plainEngineerName() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "names", List.of(Map.of("Alice", "ENG-A")),
+                "sections", Collections.emptyList()
+        ));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("Alice");          // ★ 無 '/'
+        rc.setRuncardId("RC-001");
+
+        ResultInfo info = ruleRCOwner.check("TEST", rc, rule);
+        assertEquals(2, info.getResult());
+    }
+
+    /** issuingEngineer 僅 "EmpId/EmpName" 兩段，也要能抓到最後一段 */
+    @Test
+    void check_twoSegmentsEngineerName() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "names", List.of(Map.of("Bob", "ENG-B")),
+                "sections", Collections.emptyList()
+        ));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("ENG-B/Bob");      // ★ 兩段
+        rc.setRuncardId("RC-002");
+
+        ResultInfo info = ruleRCOwner.check("TEST", rc, rule);
+        assertEquals(2, info.getResult());
     }
 }

@@ -2,10 +2,7 @@ package com.example.demo.rule;
 
 import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.DataLoaderService;
-import com.example.demo.vo.RecipeGroupAndTool;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -101,8 +98,8 @@ class RuleRecipeGroupCheckBlueTest {
 
         // Mock checkBlueList => JDTM16 有 E, JDTM17 有 F
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
-                new RecipeGroupCheckBlue("JDTM16", "E", "1", "1"),
-                new RecipeGroupCheckBlue("JDTM17", "F", "1", "1")
+                new RecipeGroupCheckBlue("JDTM16", "#E", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM17", "#F", "1", "1")
         );
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-002", List.of("JDTM16", "JDTM17")))
                 .thenReturn(checkBlueList);
@@ -134,12 +131,12 @@ class RuleRecipeGroupCheckBlueTest {
         // Mock checkBlueList
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
                 // JDTM16 => E,1
-                new RecipeGroupCheckBlue("JDTM16", "E", "1", "1"),
-                new RecipeGroupCheckBlue("JDTM16", "1", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM16", "#E", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM16", "#1", "1", "1"),
 
                 // JDTM17 => F,3
-                new RecipeGroupCheckBlue("JDTM17", "F", "1", "1"),
-                new RecipeGroupCheckBlue("JDTM17", "3", "1", "1")
+                new RecipeGroupCheckBlue("JDTM17", "#F", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM17", "#3", "1", "1")
         );
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-003", List.of("JDTM16", "JDTM17")))
                 .thenReturn(checkBlueList);
@@ -172,8 +169,8 @@ class RuleRecipeGroupCheckBlueTest {
         // - JDTM16, chamber=2 or 3 只要有一個 (release=1,enable=1) => pass
         // - JDTM20, chamber=2 or 3 只要有一個 => pass
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
-                new RecipeGroupCheckBlue("JDTM16", "3", "1", "1"),
-                new RecipeGroupCheckBlue("JDTM20", "2", "1", "1")
+                new RecipeGroupCheckBlue("JDTM16", "#3", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM20", "#2", "1", "1")
         );
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-004", List.of("JDTM16", "JDTM20")))
                 .thenReturn(checkBlueList);
@@ -272,8 +269,8 @@ class RuleRecipeGroupCheckBlueTest {
 
     /**
      * 情境 B: lotType mismatch => skip => result=0
-     *   - 若 partId 以 "TM" 開頭 => 只有 lotType=["Prod"] 時表示應檢查
-     *   - 反之 => 會被視為 mismatch => skip
+     * - 若 partId 以 "TM" 開頭 => 只有 lotType=["Prod"] 時表示應檢查
+     * - 反之 => 會被視為 mismatch => skip
      */
     @Test
     void testLotTypeMismatch() {
@@ -325,7 +322,7 @@ class RuleRecipeGroupCheckBlueTest {
 
     /**
      * 情境 E: checkBlueList 為空 => 無法匹配 => 失敗 => lamp=3
-     *   (因為任何 tool/chamber 都找不到 release=1,enable=1 的紀錄)
+     * (因為任何 tool/chamber 都找不到 release=1,enable=1 的紀錄)
      */
     @Test
     void testEmptyCheckBlueList() {
@@ -347,4 +344,106 @@ class RuleRecipeGroupCheckBlueTest {
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
         assertTrue(failTools.contains("JDTM16"));
     }
+
+    // ---------- _M pattern UT ----------
+
+    /**
+     * cond = "01_M01"，成功從 MultipleRecipeData 取到對應 TOOL 清單
+     */
+    @Test
+    void cond_01_M01_useMultipleRecipeData() {
+        // ① RecipeGroupAndTool：cond="01" (前半段)
+        RecipeGroupAndTool rgt = new RecipeGroupAndTool(
+                "01", "RG-A", "JDTM99", "recipe-{c}");          // toolIdList 只是 fallback
+        when(dataLoaderService.getRecipeGroupAndToolInfo(anyString()))
+                .thenReturn(List.of(rgt));
+
+        // ② MultipleRecipeData：提供 RC_RECIPE_ID_01_EQP_OA
+        MultipleRecipeData mdTool = new MultipleRecipeData();
+        mdTool.setCondition("01");
+        mdTool.setName("RC_RECIPE_ID_01_EQP_OA");
+        mdTool.setValue("JDTM16,JDTM17");
+        when(dataLoaderService.getMultipleRecipeData(anyString()))
+                .thenReturn(List.of(mdTool));
+
+        // ③ Blue 資料：JDTM16、17 均 release=1, enable=1
+        List<RecipeGroupCheckBlue> blues = List.of(
+                new RecipeGroupCheckBlue("JDTM16", "ANY", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM17", "ANY", "1", "1")
+        );
+        when(dataLoaderService.getRecipeGroupCheckBlue("RG-A", List.of("JDTM16", "JDTM17")))
+                .thenReturn(blues);
+
+        // ④ 執行
+        ResultInfo res = ruleRecipeGroupCheckBlue.check("01_M01", dummyRuncard, ruleWithLotType);
+
+        assertEquals(1, res.getResult());
+        assertEquals("JDTM16,JDTM17", res.getDetail().get("toolIdList"));   // 取自 MultipleRecipeData
+    }
+
+    /**
+     * cond = "01_M02"，MultipleRecipeData 找不到 suffix=02 → 使用 RecipeGroupAndTool 原值
+     */
+    @Test
+    void cond_01_M02_fallbackToRecipeGroupToolIds() {
+        RecipeGroupAndTool rgt = new RecipeGroupAndTool(
+                "01", "RG-B", "JDTM20,JDTM21", "recipe-{c}");
+        when(dataLoaderService.getRecipeGroupAndToolInfo(anyString()))
+                .thenReturn(List.of(rgt));
+
+        // MultipleRecipeData 只有 _M01，沒有 _M02 → 觸發 fallback
+        MultipleRecipeData mdTool = new MultipleRecipeData();
+        mdTool.setCondition("01");
+        mdTool.setName("RC_RECIPE_ID_01_EQP_OA");
+        mdTool.setValue("JDTM16");                      // 跟 _M02 無關
+        when(dataLoaderService.getMultipleRecipeData(anyString()))
+                .thenReturn(List.of(mdTool));
+
+        // Blue 資料只需 cover 20、21
+        List<RecipeGroupCheckBlue> blues = List.of(
+                new RecipeGroupCheckBlue("JDTM20", "ANY", "1", "1"),
+                new RecipeGroupCheckBlue("JDTM21", "ANY", "1", "1")
+        );
+        when(dataLoaderService.getRecipeGroupCheckBlue("RG-B", List.of("JDTM20", "JDTM21")))
+                .thenReturn(blues);
+
+        ResultInfo res = ruleRecipeGroupCheckBlue.check("01_M02", dummyRuncard, ruleWithLotType);
+
+        assertEquals(1, res.getResult());                             // 綠燈
+        assertEquals("JDTM20,JDTM21", res.getDetail().get("toolIdList")); // 來自 rgt
+    }
+
+    /**
+     * cond = "01_M03"，有對應 TOOL 清單但 Blue 資料不足 → 紅燈
+     */
+    @Test
+    void cond_01_M03_failBecauseToolMismatch() {
+        RecipeGroupAndTool rgt = new RecipeGroupAndTool(
+                "01", "RG-C", "JDTM99", "recipe-{c}");
+        when(dataLoaderService.getRecipeGroupAndToolInfo(anyString()))
+                .thenReturn(List.of(rgt));
+
+        MultipleRecipeData mdTool = new MultipleRecipeData();
+        mdTool.setCondition("01");
+        mdTool.setName("RC_RECIPE_ID_03_EQP_OA");      // suffix 03
+        mdTool.setValue("JDTM30,JDTM31");
+        when(dataLoaderService.getMultipleRecipeData(anyString()))
+                .thenReturn(List.of(mdTool));
+
+        // Blue 只給 JDTM30，缺 JDTM31 → 應 fail
+        List<RecipeGroupCheckBlue> blues = List.of(
+                new RecipeGroupCheckBlue("JDTM30", "ANY", "1", "1")
+                // JDTM31 缺
+        );
+        when(dataLoaderService.getRecipeGroupCheckBlue("RG-C", List.of("JDTM30", "JDTM31")))
+                .thenReturn(blues);
+
+        ResultInfo res = ruleRecipeGroupCheckBlue.check("01_M03", dummyRuncard, ruleWithLotType);
+
+        assertEquals(3, res.getResult());                            // 紅燈
+        @SuppressWarnings("unchecked")
+        List<String> fail = (List<String>) res.getDetail().get("failTools");
+        assertTrue(fail.contains("JDTM31"));
+    }
+
 }

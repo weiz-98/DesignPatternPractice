@@ -188,7 +188,7 @@ class RuleForwardProcessTest {
         rule.setSettings(Map.of(
                 "forwardSteps", 5,
                 "includeMeasurement", true,
-                "recipeIds", List.of("%MeasureTest"),
+                "recipeIds", List.of("%MeasureTest%"),
                 "toolIds", Collections.emptyList()
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
@@ -205,4 +205,111 @@ class RuleForwardProcessTest {
         assertEquals(1, info.getResult(), "only leave measurement");
         verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
+
+    // ---------- recipe pattern unit-tests ----------
+
+    /** 1) 「完全相等」 (大小寫不敏感) */
+    @Test
+    void recipePattern_equalsIgnoreCase() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "forwardSteps", 3,
+                "includeMeasurement", false,
+                "recipeIds", List.of("AbC"),   // ← 不含 %，測 equalsIgnoreCase
+                "toolIds", Collections.emptyList()
+        ));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("TM-001");
+        rc.setRuncardId("RC-EQ");
+
+        List<ForwardProcess> list = List.of(
+                new ForwardProcess("L1", "O1", "abc", "TOOL-X", "2025-01-01T10:00", "cat")
+        );
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
+
+        ResultInfo info = ruleForwardProcess.check("COND_EQ", rc, rule);
+
+        assertEquals(1, info.getResult());
+        verify(dataLoaderService).getForwardProcess(anyString());
+    }
+
+    /** 2) 「abc%」 → 以 abc 開頭 (大小寫不敏感) */
+    @Test
+    void recipePattern_startsWith() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "forwardSteps", 3,
+                "includeMeasurement", false,
+                "recipeIds", List.of("abc%"),  // ← startsWith
+                "toolIds", Collections.emptyList()
+        ));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("TM-002");
+        rc.setRuncardId("RC-ST");
+
+        List<ForwardProcess> list = List.of(
+                new ForwardProcess("L2", "O2", "AbcXYZ", "TOOL-X", "2025-01-01T11:00", "cat")
+        );
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
+
+        ResultInfo info = ruleForwardProcess.check("COND_ST", rc, rule);
+
+        assertEquals(1, info.getResult());
+        verify(dataLoaderService).getForwardProcess(anyString());
+    }
+
+    /** 3) 「%abc」 → 以 abc 結尾 (大小寫不敏感) */
+    @Test
+    void recipePattern_endsWith() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "forwardSteps", 3,
+                "includeMeasurement", false,
+                "recipeIds", List.of("%AbC"),  // ← endsWith
+                "toolIds", Collections.emptyList()
+        ));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("TM-003");
+        rc.setRuncardId("RC-END");
+
+        List<ForwardProcess> list = List.of(
+                new ForwardProcess("L3", "O3", "XYZaBc", "TOOL-X", "2025-01-01T12:00", "cat")
+        );
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
+
+        ResultInfo info = ruleForwardProcess.check("COND_END", rc, rule);
+
+        assertEquals(1, info.getResult());
+        verify(dataLoaderService).getForwardProcess(anyString());
+    }
+
+    /** 4) 「%abc%」 → 內含 abc (大小寫不敏感) */
+    @Test
+    void recipePattern_contains() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "forwardSteps", 3,
+                "includeMeasurement", false,
+                "recipeIds", List.of("%aBc%"), // ← contains
+                "toolIds", Collections.emptyList()
+        ));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setPartId("TM-004");
+        rc.setRuncardId("RC-CTN");
+
+        List<ForwardProcess> list = List.of(
+                new ForwardProcess("L4", "O4", "xxxABCyyy", "TOOL-X", "2025-01-01T13:00", "cat")
+        );
+        when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
+
+        ResultInfo info = ruleForwardProcess.check("COND_CTN", rc, rule);
+
+        assertEquals(1, info.getResult());
+        verify(dataLoaderService).getForwardProcess(anyString());
+    }
+
 }

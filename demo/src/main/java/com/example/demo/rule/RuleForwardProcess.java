@@ -153,50 +153,68 @@ public class RuleForwardProcess implements IRuleCheck {
 
     /**
      * 對於 recipeIds 裡的每個 pattern：
-     * - 若 pattern 以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 包含該 partial(不分大小寫) 即可
-     * - 若 pattern 不以 % 開頭 => 只要有 "任一" filteredForwardProcesses recipeId 完全等於該 pattern 即可
-     * 若找不到 => fail
-     * 需全部 pattern 都有找到對應 => pass
+     * - %abc    -> 以 abc 結尾 (不分大小寫)
+     * - abc%    -> 以 abc 開頭 (不分大小寫)
+     * - %abc%   -> 內含 abc   (不分大小寫)
+     * - 其餘    -> 完全相等   (不分大小寫)
+     * 日後若要新增新型態 pattern，只要在 toMatcher(...) 加 case 即可，
+     * 不必動主要迴圈邏輯，達到彈性擴充。
      */
-    private boolean checkRecipePatterns(List<ForwardProcess> filteredForwardProcesses, List<String> configuredRecipeIds) {
+    private boolean checkRecipePatterns(List<ForwardProcess> filteredForwardProcesses,
+                                        List<String> configuredRecipeIds) {
         if (configuredRecipeIds == null || configuredRecipeIds.isEmpty()) {
             return true;
         }
 
-        for (String pattern : configuredRecipeIds) {
-            if (pattern == null || pattern.trim().isEmpty()) {
-                return true;
-            }
-            boolean matchedThisPattern = false;
+        // 1) 先把每個字串 pattern 轉成 RecipePatternMatcher
+        List<RecipePatternMatcher> matchers = configuredRecipeIds.stream()
+                .filter(p -> p != null && !p.trim().isEmpty())
+                .map(this::toMatcher)
+                .toList();
 
-            String normalizedPattern = pattern.toLowerCase().trim();
+        // 2) 每個 matcher 至少要命中一筆 ForwardProcess 才算 pass
+        for (RecipePatternMatcher matcher : matchers) {
+            boolean matched = filteredForwardProcesses.stream()
+                    .map(fp -> fp.getRecipeId() == null ? "" : fp.getRecipeId())
+                    .anyMatch(matcher::match);
 
-            if (normalizedPattern.startsWith("%")) {
-                // 取出 '%' 之後的部分當作 partial
-                String partial = normalizedPattern.substring(1);
-                for (ForwardProcess fp : filteredForwardProcesses) {
-                    String recipeId = fp.getRecipeId() == null ? "" : fp.getRecipeId().toLowerCase();
-                    if (recipeId.contains(partial)) {
-                        matchedThisPattern = true;
-                        break; // 找到就可以跳出
-                    }
-                }
-            } else {
-                // 不以 '%' 開頭 => 直接比 equals
-                for (ForwardProcess fp : filteredForwardProcesses) {
-                    if (pattern.equals(fp.getRecipeId())) {
-                        matchedThisPattern = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!matchedThisPattern) {
-                return false;
+            if (!matched) {
+                return false; // 只要有一個 pattern 沒命中就 fail
             }
         }
-        return true;
+        return true; // 全部 pattern 都命中
     }
+
+    /** 把字串 pattern 轉成對應的比對策略 */
+    private RecipePatternMatcher toMatcher(String rawPattern) {
+        String p = rawPattern.trim();
+        boolean startsWithPercent = p.startsWith("%");
+        boolean endsWithPercent   = p.endsWith("%");
+
+        String core = p.replaceAll("^%|%$", ""); // 去掉左右各一個 %
+
+        if (startsWithPercent && endsWithPercent) {
+            // %abc%  → contains
+            return recipeId -> recipeId.toLowerCase().contains(core.toLowerCase());
+        }
+        if (startsWithPercent) {
+            // %abc   → endsWith
+            return recipeId -> recipeId.toLowerCase().endsWith(core.toLowerCase());
+        }
+        if (endsWithPercent) {
+            // abc%   → startsWith
+            return recipeId -> recipeId.toLowerCase().startsWith(core.toLowerCase());
+        }
+        // 其餘 → 完全相等
+        return recipeId -> recipeId.equalsIgnoreCase(p);
+    }
+
+    /** 小函式介面：傳回 true 表示 recipeId 符合此 pattern */
+    @FunctionalInterface
+    private interface RecipePatternMatcher {
+        boolean match(String recipeId);
+    }
+
 
     /**
      * toolIds 裡的每個 pattern => 需在 filteredForwardProcesses 中找到至少一筆 toolId==pattern
