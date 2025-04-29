@@ -3,6 +3,7 @@ package com.example.demo.rule;
 import com.example.demo.po.ForwardProcess;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -89,10 +90,18 @@ public class RuleForwardProcess implements IRuleCheck {
         boolean pass = passRecipe && passTool;
         int lamp = pass ? 1 : 3;
 
-        log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe={}, passTool={}",
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe = '{}', passTool = '{}'",
                 runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
 
+        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                .stream()
+                .filter(o -> cond.equals(o.getCondition()))
+                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .findFirst()
+                .orElse("");
+
         Map<String, Object> detailMap = new HashMap<>();
+        detailMap.put("recipeId", recipeId);
         detailMap.put("result", lamp);
         detailMap.put("forwardSteps", forwardSteps);
         detailMap.put("includedMeasurement", includeMeasurement);
@@ -114,7 +123,10 @@ public class RuleForwardProcess implements IRuleCheck {
         info.setResult(lamp);
         info.setDetail(detailMap);
 
-        log.info("RuncardID: {} Condition: {} - ForwardProcess check done, lamp={}",
+        log.info("RuncardID: {} Condition: {} - ForwardProcess detail = {}",
+                runcardRawInfo.getRuncardId(), cond, detailMap);
+
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check done, lamp = '{}'",
                 runcardRawInfo.getRuncardId(), cond, lamp);
 
         return info;

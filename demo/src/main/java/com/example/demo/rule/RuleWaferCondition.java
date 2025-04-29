@@ -59,7 +59,7 @@ public class RuleWaferCondition implements IRuleCheck {
         boolean isEqual = (uniqueCount == wfrQty);
         int lamp = isEqual ? 1 : 3;
 
-        log.info("RuncardID: {} Condition: {} - WaferCondition check => uniqueCount={}, wfrQty={}",
+        log.info("RuncardID: {} Condition: {} - WaferCondition check => uniqueCount = '{}', wfrQty = '{}'",
                 runcardRawInfo.getRuncardId(), cond, uniqueCount, wfrQty);
 
         String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
@@ -82,7 +82,10 @@ public class RuleWaferCondition implements IRuleCheck {
         info.setResult(lamp);
         info.setDetail(detailMap);
 
-        log.info("RuncardID: {} Condition: {} - WaferCondition check done, lamp={}",
+        log.info("RuncardID: {} Condition: {} - WaferCondition detail = {}",
+                runcardRawInfo.getRuncardId(), cond, detailMap);
+
+        log.info("RuncardID: {} Condition: {} - WaferCondition check done, lamp = '{}'",
                 runcardRawInfo.getRuncardId(), cond, lamp);
 
         return info;

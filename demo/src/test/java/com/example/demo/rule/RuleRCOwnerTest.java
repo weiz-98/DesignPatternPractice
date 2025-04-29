@@ -1,19 +1,50 @@
 package com.example.demo.rule;
 
+import com.example.demo.service.DataLoaderService;
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 
+@ExtendWith(MockitoExtension.class)
 class RuleRCOwnerTest {
 
-    private final RuleRCOwner ruleRCOwner = new RuleRCOwner();
+    private static final String COND = "TEST_COND";
+
+    @Mock
+    private DataLoaderService dataLoaderService;
+
+    @InjectMocks
+    private RuleRCOwner ruleRCOwner;
+
+    /**
+     * 每個 test 都用同一筆 OneConditionRecipeAndToolInfo
+     */
+    @BeforeEach
+    void mockRecipeInfo() {
+        OneConditionRecipeAndToolInfo info = OneConditionRecipeAndToolInfo.builder()
+                .condition(COND)
+                .recipeId("RECIPE-AAA")
+                .toolIdList("")
+                .build();
+        lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString()))
+                .thenReturn(List.of(info));
+    }
+
 
     @Test
     void check_lotTypeEmpty() {
@@ -124,7 +155,9 @@ class RuleRCOwnerTest {
         assertEquals("sectionX", sec.get(0));
     }
 
-    /** issuingEngineer 僅單一字串，無 '/'，應直接比對 */
+    /**
+     * issuingEngineer 僅單一字串，無 '/'，應直接比對
+     */
     @Test
     void check_plainEngineerName() {
         Rule rule = new Rule();
@@ -142,7 +175,9 @@ class RuleRCOwnerTest {
         assertEquals(2, info.getResult());
     }
 
-    /** issuingEngineer 僅 "EmpId/EmpName" 兩段，也要能抓到最後一段 */
+    /**
+     * issuingEngineer 僅 "EmpId/EmpName" 兩段，也要能抓到最後一段
+     */
     @Test
     void check_twoSegmentsEngineerName() {
         Rule rule = new Rule();
@@ -154,7 +189,7 @@ class RuleRCOwnerTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("TM-123");
         rc.setIssuingEngineer("ENG-B/Bob");      // ★ 兩段
-        rc.setRuncardId("RC-002");
+        rc.setRuncardId("RC-001");
 
         ResultInfo info = ruleRCOwner.check("TEST", rc, rule);
         assertEquals(2, info.getResult());

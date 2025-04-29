@@ -59,7 +59,7 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         boolean allY = list.stream().allMatch(ics -> "Y".equalsIgnoreCase(ics.getInhibitFlag()));
         int lamp = allY ? 1 : 2;
 
-        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check => allY={}",
+        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check => allY = '{}'",
                 runcardRawInfo.getRuncardId(), cond, allY);
 
         String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
@@ -80,7 +80,11 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         info.setResult(lamp);
         info.setDetail(detailMap);
 
-        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check done, lamp={}",
+        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus detail = {}",
+                runcardRawInfo.getRuncardId(), cond, detailMap);
+
+
+        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check done, lamp = '{}'",
                 runcardRawInfo.getRuncardId(), cond, lamp);
 
         return info;

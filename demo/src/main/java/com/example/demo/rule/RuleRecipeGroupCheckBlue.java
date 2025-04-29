@@ -181,7 +181,10 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         info.setResult(lamp);
         info.setDetail(detailMap);
 
-        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue check done, lamp={}",
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue detail = {}",
+                runcardRawInfo.getRuncardId(), cond, detailMap);
+
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue check done, lamp = '{}'",
                 runcardRawInfo.getRuncardId(), cond, lamp);
         return info;
     }
