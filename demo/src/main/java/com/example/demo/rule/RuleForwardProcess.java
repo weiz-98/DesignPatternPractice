@@ -25,63 +25,28 @@ public class RuleForwardProcess implements IRuleCheck {
 
     @Override
     public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
-        log.info("RuncardID: {} Condition: {} - Start RuleForwardProcess check",
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check start",
                 runcardRawInfo.getRuncardId(), cond);
 
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        if (RuleUtil.isLotTypeEmpty(rule)) {
-            log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType is empty => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-            info.setDetail(detail);
-            return info;
-        }
-
-        if (RuleUtil.isLotTypeMismatch(runcardRawInfo, rule)) {
-            log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType mismatch => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
+        ResultInfo r;
+        r = RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule);
+        if (r != null) return r;
+        r = RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule);
+        if (r != null) return r;
+        r = RuleUtil.checkSettingsNull(cond, runcardRawInfo, rule);
+        if (r != null) return r;
 
         Map<String, Object> settings = rule.getSettings();
-        if (settings == null) {
-            log.info("RuncardID: {} Condition: {} - No settings => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "No settings => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
 
         int forwardSteps = RuleUtil.parseIntSafe(settings.get("forwardSteps"));
         boolean includeMeasurement = RuleUtil.parseBooleanSafe(settings.get("includeMeasurement"));
         List<String> recipeIds = RuleUtil.parseStringList(settings.get("recipeIds"));
         List<String> toolIds = RuleUtil.parseStringList(settings.get("toolIds"));
 
-        log.info("RuncardID: {} Condition: {} - forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}",
+        log.info("RuncardID: {} Condition: {} - ForwardProcess configured => forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}",
                 runcardRawInfo.getRuncardId(), cond, forwardSteps, includeMeasurement, recipeIds, toolIds);
 
         List<ForwardProcess> allForward = dataLoaderService.getForwardProcess(runcardRawInfo.getRuncardId());
@@ -99,6 +64,10 @@ public class RuleForwardProcess implements IRuleCheck {
             info.setDetail(detail);
             return info;
         }
+
+        log.info("RuncardID: {} Condition: {} - ForwardProcess retrieved {} rows",
+                runcardRawInfo.getRuncardId(), cond,
+                allForward.size());
 
         // 4.1) 先保留前 forwardSteps 筆 (若總數 < forwardSteps，就全留)
         List<ForwardProcess> limitedList = allForward.subList(0, Math.min(forwardSteps, allForward.size()));
@@ -185,11 +154,13 @@ public class RuleForwardProcess implements IRuleCheck {
         return true; // 全部 pattern 都命中
     }
 
-    /** 把字串 pattern 轉成對應的比對策略 */
+    /**
+     * 把字串 pattern 轉成對應的比對策略
+     */
     private RecipePatternMatcher toMatcher(String rawPattern) {
         String p = rawPattern.trim();
         boolean startsWithPercent = p.startsWith("%");
-        boolean endsWithPercent   = p.endsWith("%");
+        boolean endsWithPercent = p.endsWith("%");
 
         String core = p.replaceAll("^%|%$", ""); // 去掉左右各一個 %
 
@@ -209,7 +180,9 @@ public class RuleForwardProcess implements IRuleCheck {
         return recipeId -> recipeId.equalsIgnoreCase(p);
     }
 
-    /** 小函式介面：傳回 true 表示 recipeId 符合此 pattern */
+    /**
+     * 小函式介面：傳回 true 表示 recipeId 符合此 pattern
+     */
     @FunctionalInterface
     private interface RecipePatternMatcher {
         boolean match(String recipeId);

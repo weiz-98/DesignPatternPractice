@@ -67,7 +67,7 @@ class DefaultRuleValidatorTest {
         log.info("results : {}", results);
         assertNotNull(results);
         assertEquals(1, results.size());
-        ResultInfo result = results.getFirst();
+        ResultInfo result = results.get(0);
         assertEquals("ruleA", result.getRuleType());
         assertEquals(1, result.getResult());
         assertTrue(result.getDetail().containsKey("msg"));
@@ -84,7 +84,7 @@ class DefaultRuleValidatorTest {
 
         assertNotNull(results);
         assertEquals(1, results.size());
-        ResultInfo result = results.getFirst();
+        ResultInfo result = results.get(0);
         assertEquals("ruleB", result.getRuleType());
         // 預期 result 為紅燈
         assertEquals(3, result.getResult());
@@ -129,7 +129,7 @@ class DefaultRuleValidatorTest {
         log.info("consolidated : {}", consolidated);
         // 預期合併後只留一筆，因為 ruleType 相同
         assertEquals(1, consolidated.size());
-        ResultInfo finalInfo = consolidated.getFirst();
+        ResultInfo finalInfo = consolidated.get(0);
         assertEquals("ruleA", finalInfo.getRuleType());
         // 結果應為 3 (取最大燈號)
         assertEquals(3, finalInfo.getResult());
@@ -158,7 +158,7 @@ class DefaultRuleValidatorTest {
 
         List<ResultInfo> consolidated = defaultRuleValidator.parseResult(inputList);
         assertEquals(1, consolidated.size());
-        ResultInfo finalInfo = consolidated.getFirst();
+        ResultInfo finalInfo = consolidated.get(0);
         assertEquals("ruleX", finalInfo.getRuleType());
         // 預設應為 3
         assertEquals(3, finalInfo.getResult());

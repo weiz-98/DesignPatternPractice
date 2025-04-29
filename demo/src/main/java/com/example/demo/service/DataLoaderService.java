@@ -149,7 +149,7 @@ public class DataLoaderService {
 
     public List<OneConditionRecipeAndToolInfo> getRecipeAndToolInfo(String runcardId) {
         // 1) 先拿到兩份資料
-        List<RecipeGroupAndTool> recipeGroupAndToolList = getRecipeGroupAndToolInfo(runcardId);
+        List<RecipeGroupAndTool> recipeGroupAndToolList = getRecipeGroupAndTool(runcardId);
         List<MultipleRecipeData> multipleRecipeDataList = getMultipleRecipeData(runcardId);
 
         List<OneConditionRecipeAndToolInfo> result = new ArrayList<>();
@@ -251,7 +251,7 @@ public class DataLoaderService {
         return tmp; // 不含 "_EQP_OA" 就直接回傳
     }
 
-    public List<RecipeGroupAndTool> getRecipeGroupAndToolInfo(String runcardId) {
+    public List<RecipeGroupAndTool> getRecipeGroupAndTool(String runcardId) {
         Optional<List<RecipeGroupAndTool>> opt = runcardInfoDao.getRecipeGroupsAndToolInfos();
         return opt.orElseGet(ArrayList::new);
     }

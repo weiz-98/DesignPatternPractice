@@ -92,7 +92,7 @@ class RunCardParserServiceTest {
         assertEquals(Arrays.asList("JDTM10#A", "JDTM10#B"), noGroupResult.getToolChambers());
         assertNotNull(noGroupResult.getResults());
         assertEquals(1, noGroupResult.getResults().size());
-        ResultInfo noGroupInfo = noGroupResult.getResults().getFirst();
+        ResultInfo noGroupInfo = noGroupResult.getResults().get(0);
         assertEquals("no-group", noGroupInfo.getRuleType());
         assertEquals(0, noGroupInfo.getResult());
         assertEquals("No group matched for this condition", noGroupInfo.getDetail().get("msg"));
@@ -106,7 +106,7 @@ class RunCardParserServiceTest {
         assertEquals(List.of("JDTM20#C"), withGroupResult.getToolChambers());
         assertNotNull(withGroupResult.getResults());
         assertEquals(1, withGroupResult.getResults().size());
-        ResultInfo ruleAResult = withGroupResult.getResults().getFirst();
+        ResultInfo ruleAResult = withGroupResult.getResults().get(0);
         assertEquals("ruleA", ruleAResult.getRuleType());
         assertEquals(1, ruleAResult.getResult());
         // 驗證 group name 已經被加入到 detail
@@ -189,12 +189,12 @@ class RunCardParserServiceTest {
 
         // 當呼叫 validateRule("COND1", dummyRuncard, [ruleA]) => 回傳 dummyResultA
         when(ruleValidator.validateRule(eq("COND1"), eq(dummyRawInfo), argThat(rules ->
-                rules != null && !rules.isEmpty() && "ruleA".equals(rules.getFirst().getRuleType())
+                rules != null && !rules.isEmpty() && "ruleA".equals(rules.get(0).getRuleType())
         ))).thenReturn(Collections.singletonList(dummyResultA));
 
         // 當呼叫 validateRule("COND1", dummyRawInfo, [ruleB]) => 回傳 dummyResultB
         when(ruleValidator.validateRule(eq("COND1"), eq(dummyRawInfo), argThat(rules ->
-                rules != null && !rules.isEmpty() && "ruleB".equals(rules.getFirst().getRuleType())
+                rules != null && !rules.isEmpty() && "ruleB".equals(rules.get(0).getRuleType())
         ))).thenReturn(Collections.singletonList(dummyResultB));
 
         // 呼叫被測方法
@@ -209,7 +209,7 @@ class RunCardParserServiceTest {
         assertEquals(Collections.singletonList("Tool1#A"), result1.getToolChambers());
         assertNotNull(result1.getResults());
         assertEquals(1, result1.getResults().size());
-        ResultInfo resInfo1 = result1.getResults().getFirst();
+        ResultInfo resInfo1 = result1.getResults().get(0);
         assertEquals("ruleA", resInfo1.getRuleType());
         assertEquals(1, resInfo1.getResult());
         assertEquals("GroupA", resInfo1.getDetail().get("group"));
@@ -221,7 +221,7 @@ class RunCardParserServiceTest {
         assertEquals(Collections.singletonList("Tool2#B"), result2.getToolChambers());
         assertNotNull(result2.getResults());
         assertEquals(1, result2.getResults().size());
-        ResultInfo resInfo2 = result2.getResults().getFirst();
+        ResultInfo resInfo2 = result2.getResults().get(0);
         assertEquals("ruleB", resInfo2.getRuleType());
         assertEquals(2, resInfo2.getResult());
         assertEquals("GroupB", resInfo2.getDetail().get("group"));

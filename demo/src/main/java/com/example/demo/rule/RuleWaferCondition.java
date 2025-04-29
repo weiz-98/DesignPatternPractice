@@ -23,41 +23,17 @@ public class RuleWaferCondition implements IRuleCheck {
 
     @Override
     public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
-        log.info("RuncardID: {} Condition: {} - Start RuleWaferCondition check",
+        log.info("RuncardID: {} Condition: {} - WaferCondition check start",
                 runcardRawInfo.getRuncardId(), cond);
 
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        if (RuleUtil.isLotTypeEmpty(rule)) {
-            log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType is empty => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
-
-        if (RuleUtil.isLotTypeMismatch(runcardRawInfo, rule)) {
-            log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType mismatch => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
+        ResultInfo r;
+        r = RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule);
+        if (r != null) return r;
+        r = RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule);
+        if (r != null) return r;
 
         WaferCondition wc = dataLoaderService.getWaferCondition(runcardRawInfo.getRuncardId());
         if (wc == null) {
@@ -74,6 +50,8 @@ public class RuleWaferCondition implements IRuleCheck {
             info.setDetail(detail);
             return info;
         }
+        log.info("RuncardID: {} Condition: {} - WaferCondition retrieved data: {}",
+                runcardRawInfo.getRuncardId(), cond, wc);
 
         int uniqueCount = RuleUtil.parseIntSafe(wc.getUniqueCount());
         int wfrQty = RuleUtil.parseIntSafe(wc.getWfrQty());

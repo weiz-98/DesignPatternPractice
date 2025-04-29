@@ -140,7 +140,7 @@ class ToolChamberUtilTest {
             List<List<String>> expansions = result.get(tool);
             // expansions 只有1個 bracket，且該 bracket 是 emptyList => 代表 "不指定 chamber"
             assertEquals(1, expansions.size());
-            assertTrue(expansions.getFirst().isEmpty());
+            assertTrue(expansions.get(0).isEmpty());
         }
     }
 

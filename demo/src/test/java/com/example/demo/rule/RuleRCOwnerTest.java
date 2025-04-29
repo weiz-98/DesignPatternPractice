@@ -121,7 +121,7 @@ class RuleRCOwnerTest {
         assertFalse(empIds.contains("ENG-X"));
 
         List<String> sec = (List<String>) info.getDetail().get("configuredRCOwnerOrg");
-        assertEquals("sectionX", sec.getFirst());
+        assertEquals("sectionX", sec.get(0));
     }
 
     /** issuingEngineer 僅單一字串，無 '/'，應直接比對 */

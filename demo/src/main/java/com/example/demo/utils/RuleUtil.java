@@ -1,16 +1,88 @@
 package com.example.demo.utils;
 
+import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Slf4j
 public class RuleUtil {
+
+    // RuleUtil.java
+    public static ResultInfo checkLotTypeEmpty(String cond,
+                                               RuncardRawInfo rc,
+                                               Rule rule) {
+
+        if (isLotTypeEmpty(rule)) {
+            ResultInfo info = new ResultInfo();
+            info.setRuleType(rule.getRuleType());
+            info.setResult(0);
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType is empty => skip check");
+            detail.put("runcardId", rc.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
+            info.setDetail(detail);
+
+            log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
+                    rc.getRuncardId(), cond);
+            return info;
+        }
+        return null;
+    }
+
+    public static ResultInfo checkLotTypeMismatch(String cond,
+                                                  RuncardRawInfo rc,
+                                                  Rule rule) {
+
+        if (isLotTypeMismatch(rc, rule)) {
+            ResultInfo info = new ResultInfo();
+            info.setRuleType(rule.getRuleType());
+            info.setResult(0);
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "lotType mismatch => skip check");
+            detail.put("runcardId", rc.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
+            info.setDetail(detail);
+
+            log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
+                    rc.getRuncardId(), cond);
+            return info;
+        }
+        return null;
+    }
+
+    public static ResultInfo checkSettingsNull(String cond,
+                                               RuncardRawInfo rc,
+                                               Rule rule) {
+
+        if (rule.getSettings() == null) {
+            ResultInfo info = new ResultInfo();
+            info.setRuleType(rule.getRuleType());
+            info.setResult(0);
+
+            Map<String, Object> detail = new HashMap<>();
+            detail.put("msg", "No settings => skip check");
+            detail.put("runcardId", rc.getRuncardId());
+            detail.put("condition", cond);
+            detail.put("lotType", rule.getLotType());
+
+            info.setDetail(detail);
+
+            log.info("RuncardID: {} Condition: {} - No settings => skip check",
+                    rc.getRuncardId(), cond);
+            return info;
+        }
+        return null;
+    }
+
 
     public static boolean isLotTypeEmpty(Rule rule) {
         List<String> lotTypeList = rule.getLotType();

@@ -18,62 +18,27 @@ public class RuleRCOwner implements IRuleCheck {
 
     @Override
     public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
-        log.info("RuncardID: {} Condition: {} - Start RuleRCOwner check",
+        log.info("RuncardID: {} Condition: {} - RCOwner check start",
                 runcardRawInfo.getRuncardId(), cond);
 
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        if (RuleUtil.isLotTypeEmpty(rule)) {
-            log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType is empty => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
-
-        if (RuleUtil.isLotTypeMismatch(runcardRawInfo, rule)) {
-            log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType mismatch => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
+        ResultInfo r;
+        r = RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule);
+        if (r != null) return r;
+        r = RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule);
+        if (r != null) return r;
+        r = RuleUtil.checkSettingsNull(cond, runcardRawInfo, rule);
+        if (r != null) return r;
 
         Map<String, Object> settings = rule.getSettings();
-        if (settings == null) {
-            log.info("RuncardID: {} Condition: {} - No settings => skip check",
-                    runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(0);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "No settings => skip check");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
-        }
-
         // names
         Map<String, String> namesMap = RuleUtil.parseStringMap(settings.get("names"));
         List<String> employeeIds = new ArrayList<>(namesMap.values());
         List<String> employeeNames = new ArrayList<>(namesMap.keySet());
+        log.info("RuncardID: {} Condition: {} - RCOwner configured => employeeIds={}, employeeNames={}",
+                runcardRawInfo.getRuncardId(), cond, employeeIds, employeeNames);
 
         // issuingEngineer，格式可能為 "Dept/EmpId/EmpName"
         String engineerName = runcardRawInfo.getIssuingEngineer();
