@@ -17,10 +17,12 @@ public class RuncardHandlerService {
      */
     public RuncardMappingInfo buildRuncardMappingInfo(RuncardRawInfo runcardRawInfo, List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos, List<ToolRuleGroup> toolRuleGroups) {
 
-        RuncardMappingInfo checkResult = checkBasicParams(runcardRawInfo, toolRuleGroups, oneRuncardRecipeAndToolInfos);
+        RuncardMappingInfo checkResult = checkBasicParams(runcardRawInfo, oneRuncardRecipeAndToolInfos);
         if (checkResult != null) {
             return checkResult;
         }
+
+        List<ToolRuleGroup> safeGroups = (toolRuleGroups == null || toolRuleGroups.isEmpty()) ? Collections.emptyList() : toolRuleGroups;
 
         RuncardMappingInfo mappingInfo = new RuncardMappingInfo();
         mappingInfo.setRuncardRawInfo(runcardRawInfo);
@@ -36,7 +38,7 @@ public class RuncardHandlerService {
 
             // 對這些 tool#chamber 進行 mapping
             // 同個 condition 下可能會 mapping 到多個 group 因此使用 Map
-            Map<String, List<Rule>> groupRulesMap = mappingRules(toolChambers, toolRuleGroups);
+            Map<String, List<Rule>> groupRulesMap = mappingRules(toolChambers, safeGroups);
             log.info("RuncardID: {} Condition: {} GroupRulesMap: {}", runcardRawInfo.getRuncardId(), oneConditionRecipeAndToolInfo.getCondition(), groupRulesMap);
 
             OneConditionToolRuleMappingInfo oneConditionToolRuleMappingInfo = new OneConditionToolRuleMappingInfo();
@@ -108,17 +110,11 @@ public class RuncardHandlerService {
 
     private RuncardMappingInfo checkBasicParams(
             RuncardRawInfo runcardRawInfo,
-            List<ToolRuleGroup> toolRuleGroups,
             List<OneConditionRecipeAndToolInfo> recipeInfos
     ) {
         if (runcardRawInfo == null) {
             log.error("RuncardRawInfo is null, unable to proceed");
             return new RuncardMappingInfo(null, Collections.emptyList());
-        }
-
-        if (toolRuleGroups == null || toolRuleGroups.isEmpty()) {
-            log.error("ToolGroups is null or empty, no rule mapping possible");
-            return new RuncardMappingInfo(runcardRawInfo, Collections.emptyList());
         }
 
         if (recipeInfos == null || recipeInfos.isEmpty()) {

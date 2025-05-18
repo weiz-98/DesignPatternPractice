@@ -129,10 +129,23 @@ class RuncardHandlerServiceTest {
         assertTrue(mappingInfo2.getOneConditionToolRuleMappingInfos().isEmpty());
 
         // 情境 3: toolRuleGroups 為空
-        RuncardMappingInfo mappingInfo3 = runcardHandlerService.buildRuncardMappingInfo(dummyRawInfo, recipeInfoList, Collections.emptyList());
+        RuncardMappingInfo mappingInfo3 =
+                runcardHandlerService.buildRuncardMappingInfo(
+                        dummyRawInfo,                       // runcardRawInfo OK
+                        recipeInfoList,                     // 2 筆 recipeInfos
+                        Collections.emptyList());           // ← 空的 toolRuleGroups
+
         assertNotNull(mappingInfo3);
-        assertEquals("RC-001", mappingInfo3.getRuncardRawInfo().getRuncardId());
-        assertTrue(mappingInfo3.getOneConditionToolRuleMappingInfos().isEmpty());
+        assertEquals("RC-001",
+                mappingInfo3.getRuncardRawInfo().getRuncardId());
+
+        // 仍會產生 2 筆 condition-mapping
+        assertEquals(2,
+                mappingInfo3.getOneConditionToolRuleMappingInfos().size());
+
+        // 每筆 groupRulesMap 應為 empty → 之後 RunCardParserService 會產生 no-group
+        mappingInfo3.getOneConditionToolRuleMappingInfos()
+                .forEach(m -> assertTrue(m.getGroupRulesMap().isEmpty()));
     }
 
     @Test
@@ -165,7 +178,9 @@ class RuncardHandlerServiceTest {
 
     // ---------- 新增覆蓋特殊比對邏輯 ----------
 
-    /** Group 端 chamber="" ⇒ 只比對 toolId */
+    /**
+     * Group 端 chamber="" ⇒ 只比對 toolId
+     */
     @Test
     void groupChamberEmpty_onlyToolIdMatch() {
         // toolChambers 送入 "AAA#B"
@@ -176,7 +191,8 @@ class RuncardHandlerServiceTest {
         ToolRuleGroup grp = new ToolRuleGroup();
         grp.setGroupName("G_EMPTY");
         grp.setTools(List.of(gTool));
-        Rule r = new Rule(); r.setRuleType("ruleEmpty");
+        Rule r = new Rule();
+        r.setRuleType("ruleEmpty");
         grp.setRules(List.of(r));
 
         Map<String, List<Rule>> res = runcardHandlerService.mappingRules(tcs, List.of(grp));
@@ -184,7 +200,9 @@ class RuncardHandlerServiceTest {
         assertTrue(res.containsKey("G_EMPTY"));
     }
 
-    /** 條件端 #%% ⇒ wildcard，只要 toolId 一致即可 */
+    /**
+     * 條件端 #%% ⇒ wildcard，只要 toolId 一致即可
+     */
     @Test
     void tcWildcardPercentPercent_matchAnyChamber() {
         // toolChamber 帶 wildcard
@@ -195,7 +213,8 @@ class RuncardHandlerServiceTest {
         ToolRuleGroup grp = new ToolRuleGroup();
         grp.setGroupName("G_WC");
         grp.setTools(List.of(gTool));
-        Rule r = new Rule(); r.setRuleType("ruleWC");
+        Rule r = new Rule();
+        r.setRuleType("ruleWC");
         grp.setRules(List.of(r));
 
         Map<String, List<Rule>> res = runcardHandlerService.mappingRules(tcs, List.of(grp));
@@ -203,7 +222,9 @@ class RuncardHandlerServiceTest {
         assertTrue(res.containsKey("G_WC"));
     }
 
-    /** 兩邊皆指定 chamber 且不同 ⇒ 不應匹配 */
+    /**
+     * 兩邊皆指定 chamber 且不同 ⇒ 不應匹配
+     */
     @Test
     void requireBothToolAndChamberEqual() {
         // toolChamber: CCC#A
@@ -214,7 +235,8 @@ class RuncardHandlerServiceTest {
         ToolRuleGroup grp = new ToolRuleGroup();
         grp.setGroupName("G_STRICT");
         grp.setTools(List.of(gTool));
-        Rule r = new Rule(); r.setRuleType("ruleStrict");
+        Rule r = new Rule();
+        r.setRuleType("ruleStrict");
         grp.setRules(List.of(r));
 
         Map<String, List<Rule>> res = runcardHandlerService.mappingRules(tcs, List.of(grp));
