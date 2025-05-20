@@ -15,7 +15,7 @@ import java.util.List;
 public class RuncardResult {
     private String runcardId;
     private String approver;
-    private Integer arrivalHours;
+    private Double arrivalHours;
     private LocalDateTime latestCheckDt;
     private List<OneConditionToolRuleGroupResult> conditions;
     private Boolean hasApproved;

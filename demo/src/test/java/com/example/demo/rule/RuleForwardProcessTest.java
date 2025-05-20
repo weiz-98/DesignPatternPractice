@@ -208,7 +208,9 @@ class RuleForwardProcessTest {
 
     // ---------- recipe pattern unit-tests ----------
 
-    /** 1) 「完全相等」 (大小寫不敏感) */
+    /**
+     * 1) 「完全相等」 (大小寫不敏感)
+     */
     @Test
     void recipePattern_equalsIgnoreCase() {
         Rule rule = new Rule();
@@ -234,7 +236,9 @@ class RuleForwardProcessTest {
         verify(dataLoaderService).getForwardProcess(anyString());
     }
 
-    /** 2) 「abc%」 → 以 abc 開頭 (大小寫不敏感) */
+    /**
+     * 2) 「abc%」 → 以 abc 開頭 (大小寫不敏感)
+     */
     @Test
     void recipePattern_startsWith() {
         Rule rule = new Rule();
@@ -260,7 +264,9 @@ class RuleForwardProcessTest {
         verify(dataLoaderService).getForwardProcess(anyString());
     }
 
-    /** 3) 「%abc」 → 以 abc 結尾 (大小寫不敏感) */
+    /**
+     * 3) 「%abc」 → 以 abc 結尾 (大小寫不敏感)
+     */
     @Test
     void recipePattern_endsWith() {
         Rule rule = new Rule();
@@ -286,7 +292,9 @@ class RuleForwardProcessTest {
         verify(dataLoaderService).getForwardProcess(anyString());
     }
 
-    /** 4) 「%abc%」 → 內含 abc (大小寫不敏感) */
+    /**
+     * 4) 「%abc%」 → 內含 abc (大小寫不敏感)
+     */
     @Test
     void recipePattern_contains() {
         Rule rule = new Rule();

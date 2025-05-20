@@ -81,15 +81,18 @@ public class RuncardFlowService {
                 .map(OneRuncardRuleResult::getRuncardId)
                 .toList();
         List<ArrivalStatus> arrivalStatuses = dataLoaderService.getRuncardArrivalStatuses(runCardList);
-        Map<String, Integer> runCardArrivalMap = arrivalStatuses.stream()
-                .collect(Collectors.toMap(ArrivalStatus::getRuncardId, arrivalStatus -> Integer.parseInt(arrivalStatus.getArrivalTime())));
+
+        Map<String, Double> runCardArrivalMap = arrivalStatuses.stream()
+                .collect(Collectors.toMap(
+                        ArrivalStatus::getRuncardId,
+                        a -> safeParseDouble(a.getArrivalTime(), -1.0)));
 
         List<RuncardResult> results = new ArrayList<>();
 
         oneModuleRuleResult.forEach(oneRuncardRuleResult -> {
             String runcardId = oneRuncardRuleResult.getRuncardId();
             // -1 代表未到站
-            int arrivalHours = runCardArrivalMap.getOrDefault(runcardId, -1);
+            double arrivalHours = runCardArrivalMap.getOrDefault(runcardId, -1.0);
             log.info("RuncardID: {} arrivalHours {}", runcardId, arrivalHours);
 
             // save mongo db
@@ -138,11 +141,21 @@ public class RuncardFlowService {
                 .supervisorAndDepartment(raw.getSupervisorAndDepartment())
                 .numberOfPieces(raw.getNumberOfPieces())
                 .holdAtOperNo(raw.getHoldAtOperNo())
-                .arrivalHours(Optional.ofNullable(rr).map(RuncardResult::getArrivalHours).orElse(-1))
+                .arrivalHours(Optional.ofNullable(rr).map(RuncardResult::getArrivalHours).orElse(-1.0))
                 .latestCheckDt(Optional.ofNullable(rr).map(RuncardResult::getLatestCheckDt).orElse(LocalDateTime.now()))
                 .conditions(Optional.ofNullable(rr).map(RuncardResult::getConditions).orElse(Collections.emptyList()))
                 .hasApproved(Optional.ofNullable(rr).map(RuncardResult::getHasApproved).orElse(false))
                 .build();
+    }
+
+    private double safeParseDouble(String str, double defaultVal) {
+        if (str == null || str.isBlank()) return defaultVal;
+        try {
+            return Double.parseDouble(str.trim());
+        } catch (NumberFormatException ex) {
+            log.warn("[safeParseDouble] cannot parse '{}', use default {}", str, defaultVal);
+            return defaultVal;
+        }
     }
 
 }

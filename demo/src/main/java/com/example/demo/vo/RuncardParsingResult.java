@@ -12,7 +12,7 @@ import java.util.List;
 @AllArgsConstructor
 @SuperBuilder
 public class RuncardParsingResult extends RuncardRawInfo {
-    private Integer arrivalHours;
+    private Double arrivalHours;
     private LocalDateTime latestCheckDt;
     private List<OneConditionToolRuleGroupResult> conditions;
     private Boolean hasApproved;

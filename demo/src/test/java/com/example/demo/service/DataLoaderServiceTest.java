@@ -234,7 +234,7 @@ class DataLoaderServiceTest {
 
     /**
      * case 5: MultipleRecipeData 同時含有效與「非 RC_RECIPE_ID_ 開頭」資料，
-     *         非法資料必須被跳過，不得產生 OneConditionRecipeAndToolInfo
+     * 非法資料必須被跳過，不得產生 OneConditionRecipeAndToolInfo
      */
     @Test
     void testGetRecipeAndToolInfo_skipInvalidName() {
@@ -244,10 +244,10 @@ class DataLoaderServiceTest {
 
         // 準備 MultipleRecipeData
         MultipleRecipeData validRecipe = new MultipleRecipeData("01", "RC_RECIPE_ID_01", "Recipe-OK");
-        MultipleRecipeData validTool   = new MultipleRecipeData("01", "RC_RECIPE_ID_01_EQP_OA", "Tool-OK");
+        MultipleRecipeData validTool = new MultipleRecipeData("01", "RC_RECIPE_ID_01_EQP_OA", "Tool-OK");
 
         // ★ 非法：name 不以 RC_RECIPE_ID_ 起頭 → 應被跳過
-        MultipleRecipeData invalid1   = new MultipleRecipeData("01",
+        MultipleRecipeData invalid1 = new MultipleRecipeData("01",
                 "M_FOLLOW_CHUCK_DEDICATION", "SHOULD_SKIP");
 
         List<MultipleRecipeData> mocks = List.of(validRecipe, validTool, invalid1);
@@ -260,12 +260,12 @@ class DataLoaderServiceTest {
         assertEquals(1, res.size());
         assertEquals("01_M01", res.get(0).getCondition());
         assertEquals("Recipe-OK", res.get(0).getRecipeId());
-        assertEquals("Tool-OK",   res.get(0).getToolIdList());
+        assertEquals("Tool-OK", res.get(0).getToolIdList());
     }
 
     /**
      * case 6: MultipleRecipeData.name 雖以 RC_RECIPE_ID_ 開頭，但無數字後綴，
-     *         parseSuffixFromName 取到空字串，必須被跳過
+     * parseSuffixFromName 取到空字串，必須被跳過
      */
     @Test
     void testGetRecipeAndToolInfo_skipEmptySuffix() {
@@ -276,7 +276,7 @@ class DataLoaderServiceTest {
         MultipleRecipeData malFormed = new MultipleRecipeData("02", "RC_RECIPE_ID_", "BadData");
 
         // 另一筆正常資料, 方便確認只有它被留下
-        MultipleRecipeData okRecipe  = new MultipleRecipeData("02", "RC_RECIPE_ID_01", "R-OK");
+        MultipleRecipeData okRecipe = new MultipleRecipeData("02", "RC_RECIPE_ID_01", "R-OK");
 
         when(runcardInfoDao.multipleRecipeData())
                 .thenReturn(Optional.of(List.of(malFormed, okRecipe)));
@@ -286,7 +286,7 @@ class DataLoaderServiceTest {
         // 只應有 1 筆 ("02_M01")
         assertEquals(1, res.size());
         assertEquals("02_M01", res.get(0).getCondition());
-        assertEquals("R-OK",   res.get(0).getRecipeId());
+        assertEquals("R-OK", res.get(0).getRecipeId());
     }
 
 }
