@@ -10,7 +10,17 @@ import java.util.*;
 @Slf4j
 public class RuleUtil {
 
-    // RuleUtil.java
+    public static ResultInfo addRecipe(ResultInfo info, String recipeId) {
+        if (info == null) {
+            return null;
+        }
+        if (info.getDetail() == null) {
+            info.setDetail(new HashMap<>());
+        }
+        info.getDetail().put("recipeId", recipeId);
+        return info;
+    }
+
     public static ResultInfo checkLotTypeEmpty(String cond,
                                                RuncardRawInfo rc,
                                                Rule rule) {

@@ -32,12 +32,25 @@ public class RuleForwardProcess implements IRuleCheck {
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        ResultInfo r;
-        r = RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule);
+        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                .stream()
+                .filter(o -> {
+                    if (cond.contains("_M")) {
+                        return cond.startsWith(o.getCondition());
+                    }
+                    return cond.equals(o.getCondition());
+                })
+                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .findFirst()
+                .orElse("");
+
+        ResultInfo r = RuleUtil.addRecipe(RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule), recipeId);
         if (r != null) return r;
-        r = RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule);
+
+        r = RuleUtil.addRecipe(RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule), recipeId);
         if (r != null) return r;
-        r = RuleUtil.checkSettingsNull(cond, runcardRawInfo, rule);
+
+        r = RuleUtil.addRecipe(RuleUtil.checkSettingsNull(cond, runcardRawInfo, rule), recipeId);
         if (r != null) return r;
 
         Map<String, Object> settings = rule.getSettings();
@@ -92,13 +105,6 @@ public class RuleForwardProcess implements IRuleCheck {
 
         log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe = '{}', passTool = '{}'",
                 runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
-
-        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
-                .stream()
-                .filter(o -> cond.equals(o.getCondition()))
-                .map(OneConditionRecipeAndToolInfo::getRecipeId)
-                .findFirst()
-                .orElse("");
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeId);

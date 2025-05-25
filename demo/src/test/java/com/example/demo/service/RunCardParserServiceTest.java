@@ -24,6 +24,9 @@ class RunCardParserServiceTest {
     @Mock
     private DefaultRuleValidator ruleValidator;
 
+    @Mock
+    private DataLoaderService dataLoaderService;
+
     // Dummy 資料
     private RuncardRawInfo dummyRawInfo;
     private OneConditionToolRuleMappingInfo conditionNoGroup;

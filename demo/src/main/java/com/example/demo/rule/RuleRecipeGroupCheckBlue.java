@@ -29,10 +29,21 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        ResultInfo r;
-        r = RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule);
+        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                .stream()
+                .filter(o -> {
+                    if (cond.contains("_M")) {
+                        return cond.startsWith(o.getCondition());
+                    }
+                    return cond.equals(o.getCondition());
+                })
+                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .findFirst()
+                .orElse("");
+
+        ResultInfo r = RuleUtil.addRecipe(RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule), recipeId);
         if (r != null) return r;
-        r = RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule);
+        r = RuleUtil.addRecipe(RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule), recipeId);
         if (r != null) return r;
 
         // 找出該 cond 對應的 RecipeGroupsAndToolInfo
@@ -64,7 +75,6 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         // 這邊按理來說只會有一筆(mapping 到指定的 condition)
         RecipeGroupAndTool rgtInfo = filteredGroups.get(0);
         String recipeGroupId = rgtInfo.getRecipeGroupId();
-        String recipeId = rgtInfo.getRecipeId();         // e.g. "xxx.xx-xxxx.xxxx-{cEF}{c134}"
 
         // 依 cond 是否為 XX_MXX 決定 toolIdList 來源
         String toolIdListStr;

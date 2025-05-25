@@ -14,6 +14,7 @@ import java.util.*;
 public class RunCardParserService {
 
     private final DefaultRuleValidator ruleValidator;
+    private final DataLoaderService dataLoaderService;
 
     /**
      * 解析一張 runcard 下所有 condition 的判斷結果
@@ -38,15 +39,8 @@ public class RunCardParserService {
 
             //  若沒有 mapping 到任何 group -> 也要產生一筆記錄，表示該 condition 沒有對應到 group
             if (groupRulesMap == null || groupRulesMap.isEmpty()) {
-                log.info("RuncardID: {} Condition: {} - No group mapping found",
-                        runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition());
-                ResultInfo noGroupInfo = new ResultInfo();
-                noGroupInfo.setRuleType("no-group");
-                noGroupInfo.setResult(0); // 0 代表沒有對應
-                Map<String, Object> detailMap = new HashMap<>();
-                detailMap.put("msg", "No group matched for this condition");
-                noGroupInfo.setDetail(detailMap);
-                oneConditionAllResultInfos.add(noGroupInfo);
+                oneConditionAllResultInfos.add(
+                        buildNoGroupResultInfo(runcardRawInfo, oneCondMappingInfo.getCondition()));
             } else {
                 // 若有 group => 逐一 group 去做 validateRule
                 for (Map.Entry<String, List<Rule>> entry : groupRulesMap.entrySet()) {
@@ -118,6 +112,31 @@ public class RunCardParserService {
             return Collections.emptyList();
         }
         return null;
+    }
+
+    private ResultInfo buildNoGroupResultInfo(RuncardRawInfo rc, String cond) {
+
+        String recipeId = dataLoaderService.getRecipeAndToolInfo(rc.getRuncardId())
+                .stream()
+                .filter(o -> cond.equals(o.getCondition()))
+                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .findFirst()
+                .orElse("");
+
+        Map<String, Object> detail = new HashMap<>();
+        detail.put("msg", "No group matched for this condition");
+        detail.put("recipeId", recipeId);
+        detail.put("runcardId", rc.getRuncardId());
+        detail.put("condition", cond);
+
+        ResultInfo resultInfo = new ResultInfo();
+        resultInfo.setRuleType("no-group");
+        resultInfo.setResult(0);
+        resultInfo.setDetail(detail);
+
+        log.info("RuncardID: {} Condition: {} - No group mapping found, recipeId='{}'",
+                rc.getRuncardId(), cond, recipeId);
+        return resultInfo;
     }
 }
 
