@@ -214,4 +214,33 @@ public class RuleUtil {
         }
         return Collections.emptyMap();
     }
+
+    public static ResultInfo buildSkipInfo(String ruleType,
+                                           RuncardRawInfo rc,
+                                           String cond,
+                                           Rule rule,
+                                           String recipeId,
+                                           int result,           // 0=skip, 3=no data
+                                           String key,           // "msg" 或 "error"
+                                           String message,
+                                           boolean isMCondition) {
+
+        Map<String, Object> d = new HashMap<>();
+        d.put(key, message);
+        d.put("recipeId", recipeId);
+        d.put("runcardId", rc.getRuncardId());
+        d.put("condition", cond);
+        d.put("lotType", rule.getLotType());
+        if (isMCondition) {
+            d.put("isMCondition", true);
+        }
+
+        ResultInfo ri = new ResultInfo();
+        ri.setRuleType(ruleType);
+        ri.setResult(result);
+        ri.setDetail(d);
+
+        return ri;
+    }
+
 }

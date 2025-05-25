@@ -27,20 +27,19 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check start",
                 runcardRawInfo.getRuncardId(), cond);
 
-        ResultInfo info = new ResultInfo();
-        info.setRuleType(rule.getRuleType());
-
         String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
                 .stream()
-                .filter(o -> {
-                    if (cond.contains("_M")) {
-                        return cond.startsWith(o.getCondition());
-                    }
-                    return cond.equals(o.getCondition());
-                })
+                .filter(o -> cond.contains("_M") ? cond.startsWith(o.getCondition())
+                        : cond.equals(o.getCondition()))
                 .map(OneConditionRecipeAndToolInfo::getRecipeId)
                 .findFirst()
                 .orElse("");
+
+        if (cond.contains("_M")) {
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeId, 0,
+                    "msg", "Skip M-Condition", true);
+        }
 
         ResultInfo r = RuleUtil.addRecipe(RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule), recipeId);
         if (r != null) return r;
@@ -51,36 +50,42 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         if (list.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No InhibitionCheckStatus data => skip",
                     runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(3);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("error", "No InhibitionCheckStatus data => skip");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeId, 3,
+                    "error", "No InhibitionCheckStatus data => skip", false);
         }
 
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus retrieved {} rows",
                 runcardRawInfo.getRuncardId(), cond,
                 list.size());
 
-        boolean allY = list.stream().allMatch(ics -> "Y".equalsIgnoreCase(ics.getInhibitFlag()));
-        int lamp = allY ? 1 : 2;
+        InhibitionCheckStatus target = list.stream()
+                .filter(ics -> cond.equals(ics.getCondition()))
+                .findFirst()
+                .orElse(null);
 
-        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check => allY = '{}'",
-                runcardRawInfo.getRuncardId(), cond, allY);
+        if (target == null) {
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeId, 3,
+                    "error", "No InhibitionCheckStatus for condition", false);
+        }
+
+        boolean flagY = "Y".equalsIgnoreCase(target.getInhibitFlag());
+        int lamp = flagY ? 1 : 2;
+
+        log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check => inhibitFlag='{}'",
+                runcardRawInfo.getRuncardId(), cond, target.getInhibitFlag());
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeId);
         detailMap.put("result", lamp);
-        detailMap.put("inhibitionCheck", allY);
+        detailMap.put("inhibitionCheck", flagY);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());
         detailMap.put("condition", cond);
         detailMap.put("lotType", rule.getLotType());
 
+        ResultInfo info = new ResultInfo();
+        info.setRuleType(rule.getRuleType());
         info.setResult(lamp);
         info.setDetail(detailMap);
 

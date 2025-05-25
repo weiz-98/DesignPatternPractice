@@ -34,12 +34,8 @@ public class RuleForwardProcess implements IRuleCheck {
 
         String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
                 .stream()
-                .filter(o -> {
-                    if (cond.contains("_M")) {
-                        return cond.startsWith(o.getCondition());
-                    }
-                    return cond.equals(o.getCondition());
-                })
+                .filter(o -> cond.contains("_M") ? cond.startsWith(o.getCondition())
+                        : cond.equals(o.getCondition()))
                 .map(OneConditionRecipeAndToolInfo::getRecipeId)
                 .findFirst()
                 .orElse("");
@@ -67,16 +63,9 @@ public class RuleForwardProcess implements IRuleCheck {
         if (allForward.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip",
                     runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(3);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("error", "No ForwardProcess data => skip");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeId, 3,
+                    "error", "No ForwardProcess data => skip", false);
         }
 
         log.info("RuncardID: {} Condition: {} - ForwardProcess retrieved {} rows",

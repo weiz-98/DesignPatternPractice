@@ -10,5 +10,6 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InhibitionCheckStatus {
+    private String condition;
     private String inhibitFlag;
 }

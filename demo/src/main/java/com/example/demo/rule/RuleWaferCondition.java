@@ -31,12 +31,8 @@ public class RuleWaferCondition implements IRuleCheck {
 
         String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
                 .stream()
-                .filter(o -> {
-                    if (cond.contains("_M")) {
-                        return cond.startsWith(o.getCondition());
-                    }
-                    return cond.equals(o.getCondition());
-                })
+                .filter(o -> cond.contains("_M") ? cond.startsWith(o.getCondition())
+                        : cond.equals(o.getCondition()))
                 .map(OneConditionRecipeAndToolInfo::getRecipeId)
                 .findFirst()
                 .orElse("");
@@ -51,16 +47,9 @@ public class RuleWaferCondition implements IRuleCheck {
         if (wc == null) {
             log.info("RuncardID: {} Condition: {} - No WaferCondition data => skip",
                     runcardRawInfo.getRuncardId(), cond);
-
-            info.setResult(3);
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("error", "No WaferCondition data => skip");
-            detail.put("runcardId", runcardRawInfo.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-            return info;
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeId, 3,
+                    "error", "No WaferCondition data => skip", false);
         }
         log.info("RuncardID: {} Condition: {} - WaferCondition retrieved data: {}",
                 runcardRawInfo.getRuncardId(), cond, wc);

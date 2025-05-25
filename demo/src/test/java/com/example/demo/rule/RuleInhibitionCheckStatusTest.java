@@ -82,19 +82,20 @@ class RuleInhibitionCheckStatusTest {
     void check_allY() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
+
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
 
         List<InhibitionCheckStatus> mockList = List.of(
-                new InhibitionCheckStatus("Y"),
-                new InhibitionCheckStatus("Y")
+                new InhibitionCheckStatus("01", "Y"),   // ← 測試目標
+                new InhibitionCheckStatus("02", "N")
         );
         when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
 
-        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("01", rc, rule);
 
-        assertEquals(1, info.getResult(), "all Y => lamp=1");
+        assertEquals(1, info.getResult(), "inhibitFlag=Y ⇒ lamp=1");
         assertEquals(true, info.getDetail().get("inhibitionCheck"));
         verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
     }
@@ -103,21 +104,22 @@ class RuleInhibitionCheckStatusTest {
     void check_anyN() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
+
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-ABC");
 
         List<InhibitionCheckStatus> mockList = List.of(
-                new InhibitionCheckStatus("Y"),
-                new InhibitionCheckStatus("N"),
-                new InhibitionCheckStatus("Y")
+                new InhibitionCheckStatus("01", "Y"),
+                new InhibitionCheckStatus("02", "N")   // ← 測試目標 (condition = "02")
         );
         when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
 
-        ResultInfo info = ruleInhibitionCheckStatus.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleInhibitionCheckStatus.check("02", rc, rule);
 
-        assertEquals(2, info.getResult());
+        assertEquals(2, info.getResult(), "inhibitFlag≠Y ⇒ lamp=2");
         assertEquals(false, info.getDetail().get("inhibitionCheck"));
         verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
     }
+
 }
