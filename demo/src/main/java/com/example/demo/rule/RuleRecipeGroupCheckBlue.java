@@ -29,25 +29,28 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+        RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
                 .stream()
-                .filter(o -> cond.contains("_M") ? cond.startsWith(o.getCondition())
-                        : cond.equals(o.getCondition()))
-                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .filter(o -> cond.equals(o.getCondition()))
                 .findFirst()
-                .orElse("");
+                .map(o -> RecipeToolPair.builder()
+                        .recipeId(o.getRecipeId())
+                        .toolIds(o.getToolIdList())
+                        .build())
+                .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
 
-        ResultInfo r = RuleUtil.addRecipe(RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule), recipeId);
+        ResultInfo r;
+        r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
-        r = RuleUtil.addRecipe(RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule), recipeId);
+        r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
 
-        // 找出該 cond 對應的 RecipeGroupsAndToolInfo
         List<RecipeGroupAndTool> groupsAndToolInfos =
                 dataLoaderService.getRecipeGroupAndTool(runcardRawInfo.getRuncardId());
+        // 由於遇到 multiple recipe data 時並沒有 recipe group，需參照原 condition 的 recipe group
         List<RecipeGroupAndTool> filteredGroups = groupsAndToolInfos.stream()
                 .filter(rgt -> {
-                    if (cond.contains("_M")) {          // ★ modified：如 01_M01
+                    if (cond.contains("_M")) {          // modified：如 01_M01
                         return cond.startsWith(rgt.getCondition()); // 取前半段 "01"
                     }
                     return cond.equals(rgt.getCondition());
@@ -57,51 +60,17 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
             log.info("RuncardID: {} Condition: {} - No RecipeGroupsAndToolInfo for condition",
                     runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
-                    recipeId, 3,
-                    "error", "No RecipeGroupsAndToolInfo for condition", false);
+                    recipeToolPair, 3, "error", "No RecipeGroupsAndToolInfo for condition", false);
         }
 
         // 這邊按理來說只會有一筆(mapping 到指定的 condition)
         RecipeGroupAndTool rgtInfo = filteredGroups.get(0);
         String recipeGroupId = rgtInfo.getRecipeGroupId();
 
-        // 依 cond 是否為 XX_MXX 決定 toolIdList 來源
-        String toolIdListStr;
-        if (cond.contains("_M")) {
-            // cond 範例: "01_M01" => baseCond="01", suffix="01"
-            String[] parts = cond.split("_M", 2);
-            String baseCond = parts[0];
-            String suffix = parts.length == 2 ? parts[1] : "";
+        String toolIdListStr = (recipeToolPair.getToolIds() == null || recipeToolPair.getToolIds().isEmpty())
+                ? rgtInfo.getToolIdList()
+                : recipeToolPair.getToolIds();
 
-            // 從 MultipleRecipeData 找 RC_RECIPE_ID_{suffix}_EQP_OA
-            toolIdListStr = "";
-            List<MultipleRecipeData> mrdList =
-                    dataLoaderService.getMultipleRecipeData(runcardRawInfo.getRuncardId());
-            for (MultipleRecipeData mrd : mrdList) {
-                if (baseCond.equals(mrd.getCondition())
-                        && mrd.getName().startsWith("RC_RECIPE_ID_")
-                        && mrd.getName().endsWith("_EQP_OA")) {
-
-                    // 取出 {suffix}
-                    String extracted = mrd.getName()
-                            .substring("RC_RECIPE_ID_".length(),
-                                    mrd.getName().length() - "_EQP_OA".length());
-                    if (suffix.equals(extracted)) {
-                        toolIdListStr = mrd.getValue(); // 找到對應 TOOL 清單
-                        break;
-                    }
-                }
-            }
-            // 若 MultipleRecipeData 找不到，回退用 RecipeGroupAndTool 內建值
-            if (toolIdListStr == null || toolIdListStr.isEmpty()) {
-                toolIdListStr = rgtInfo.getToolIdList();
-            }
-        } else {
-            // 舊邏輯：直接採用 RecipeGroupAndTool.toolIdList
-            toolIdListStr = rgtInfo.getToolIdList();
-        }
-
-        // 4) 將 toolIdList 解析成 List<String>
         List<String> toolIds = ToolChamberUtil.splitToolList(toolIdListStr);
 
         // 5) 取得 RecipeGroupCheckBlue
@@ -111,9 +80,9 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
                 runcardRawInfo.getRuncardId(), cond, checkBlueList.size(), recipeGroupId, toolIds);
 
 
-        Map<String, List<List<String>>> grouped = ToolChamberUtil.parseChamberGrouped(toolIds, recipeId);
+        Map<String, List<List<String>>> grouped = ToolChamberUtil.parseChamberGrouped(toolIds, recipeToolPair.getRecipeId());
         log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue parsed chamber grouped from recipeId: {} -> {}",
-                runcardRawInfo.getRuncardId(), cond, recipeId, grouped);
+                runcardRawInfo.getRuncardId(), cond, recipeToolPair.getRecipeId(), grouped);
 
         boolean pass = true;
         List<String> failTools = new ArrayList<>();
@@ -171,7 +140,8 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         detailMap.put("result", lamp);
         detailMap.put("recipeGroupId", recipeGroupId);
         detailMap.put("toolIdList", toolIdListStr);
-        detailMap.put("recipeId", recipeId);
+        detailMap.put("recipeId", recipeToolPair.getRecipeId());
+        detailMap.put("toolIds", recipeToolPair.getToolIds());
         detailMap.put("failTools", failTools);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());
         detailMap.put("condition", cond);

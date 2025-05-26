@@ -3,7 +3,7 @@ package com.example.demo.rule;
 import com.example.demo.po.ForwardProcess;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
-import com.example.demo.vo.OneConditionRecipeAndToolInfo;
+import com.example.demo.vo.RecipeToolPair;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -32,21 +32,22 @@ public class RuleForwardProcess implements IRuleCheck {
         ResultInfo info = new ResultInfo();
         info.setRuleType(rule.getRuleType());
 
-        String recipeId = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+        RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
                 .stream()
-                .filter(o -> cond.contains("_M") ? cond.startsWith(o.getCondition())
-                        : cond.equals(o.getCondition()))
-                .map(OneConditionRecipeAndToolInfo::getRecipeId)
+                .filter(o -> cond.equals(o.getCondition()))
                 .findFirst()
-                .orElse("");
+                .map(o -> RecipeToolPair.builder()
+                        .recipeId(o.getRecipeId())
+                        .toolIds(o.getToolIdList())
+                        .build())
+                .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
 
-        ResultInfo r = RuleUtil.addRecipe(RuleUtil.checkLotTypeEmpty(cond, runcardRawInfo, rule), recipeId);
+        ResultInfo r;
+        r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
-
-        r = RuleUtil.addRecipe(RuleUtil.checkLotTypeMismatch(cond, runcardRawInfo, rule), recipeId);
+        r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
-
-        r = RuleUtil.addRecipe(RuleUtil.checkSettingsNull(cond, runcardRawInfo, rule), recipeId);
+        r = RuleUtil.skipIfSettingsNull(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
 
         Map<String, Object> settings = rule.getSettings();
@@ -64,8 +65,7 @@ public class RuleForwardProcess implements IRuleCheck {
             log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip",
                     runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
-                    recipeId, 3,
-                    "error", "No ForwardProcess data => skip", false);
+                    recipeToolPair, 3, "error", "No ForwardProcess data => skip", false);
         }
 
         log.info("RuncardID: {} Condition: {} - ForwardProcess retrieved {} rows",
@@ -96,7 +96,8 @@ public class RuleForwardProcess implements IRuleCheck {
                 runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
 
         Map<String, Object> detailMap = new HashMap<>();
-        detailMap.put("recipeId", recipeId);
+        detailMap.put("recipeId", recipeToolPair.getRecipeId());
+        detailMap.put("toolIds", recipeToolPair.getToolIds());
         detailMap.put("result", lamp);
         detailMap.put("forwardSteps", forwardSteps);
         detailMap.put("includedMeasurement", includeMeasurement);

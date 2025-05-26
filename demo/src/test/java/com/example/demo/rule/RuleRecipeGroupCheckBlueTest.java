@@ -9,6 +9,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Collections;
 import java.util.List;
@@ -20,7 +23,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @Slf4j
-@ExtendWith(org.mockito.junit.jupiter.MockitoExtension.class)
+@ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RuleRecipeGroupCheckBlueTest {
 
     @Mock
@@ -348,6 +352,8 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getMultipleRecipeData(anyString()))
                 .thenReturn(List.of(mdTool));
 
+        stubPair("01_M01", "JDTM16,JDTM17");   // 讓 Rule 取得正確 toolIds
+
         // ③ Blue 資料：JDTM16、17 均 release=1, enable=1
         List<RecipeGroupCheckBlue> blues = List.of(
                 new RecipeGroupCheckBlue("JDTM16", "ANY", "1", "1"),
@@ -380,6 +386,7 @@ class RuleRecipeGroupCheckBlueTest {
         mdTool.setValue("JDTM16");                      // 跟 _M02 無關
         when(dataLoaderService.getMultipleRecipeData(anyString()))
                 .thenReturn(List.of(mdTool));
+        stubPair("01_M02", "");                // 空字串 → 觸發 fallback 到 rgt 的 JDTM20,21
 
         // Blue 資料只需 cover 20、21
         List<RecipeGroupCheckBlue> blues = List.of(
@@ -412,6 +419,9 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getMultipleRecipeData(anyString()))
                 .thenReturn(List.of(mdTool));
 
+        stubPair("01_M03", "JDTM30,JDTM31");   // 要求比對 30、31
+
+
         // Blue 只給 JDTM30，缺 JDTM31 → 應 fail
         List<RecipeGroupCheckBlue> blues = List.of(
                 new RecipeGroupCheckBlue("JDTM30", "ANY", "1", "1")
@@ -428,4 +438,13 @@ class RuleRecipeGroupCheckBlueTest {
         assertTrue(fail.contains("JDTM31"));
     }
 
+    private void stubPair(String cond, String toolIds) {
+        OneConditionRecipeAndToolInfo pair = OneConditionRecipeAndToolInfo.builder()
+                .condition(cond)
+                .recipeId("")
+                .toolIdList(toolIds)
+                .build();
+        when(dataLoaderService.getRecipeAndToolInfo(anyString()))
+                .thenReturn(List.of(pair));
+    }
 }

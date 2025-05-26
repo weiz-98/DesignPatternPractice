@@ -1,5 +1,6 @@
 package com.example.demo.utils;
 
+import com.example.demo.vo.RecipeToolPair;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -9,88 +10,37 @@ import java.util.*;
 
 @Slf4j
 public class RuleUtil {
-
-    public static ResultInfo addRecipe(ResultInfo info, String recipeId) {
-        if (info == null) {
-            return null;
-        }
-        if (info.getDetail() == null) {
-            info.setDetail(new HashMap<>());
-        }
-        info.getDetail().put("recipeId", recipeId);
-        return info;
+    public static ResultInfo skipIfLotTypeEmpty(String cond,
+                                                RuncardRawInfo rc,
+                                                Rule rule,
+                                                RecipeToolPair pair) {
+        return isLotTypeEmpty(rule)
+                ? buildSkipInfo(rule.getRuleType(), rc, cond, rule,
+                pair, 0, "msg",
+                "lotType is empty => skip check", false)
+                : null;
     }
 
-    public static ResultInfo checkLotTypeEmpty(String cond,
-                                               RuncardRawInfo rc,
-                                               Rule rule) {
-
-        if (isLotTypeEmpty(rule)) {
-            ResultInfo info = new ResultInfo();
-            info.setRuleType(rule.getRuleType());
-            info.setResult(0);
-
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType is empty => skip check");
-            detail.put("runcardId", rc.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-
-            log.info("RuncardID: {} Condition: {} - lotType is empty => skip check",
-                    rc.getRuncardId(), cond);
-            return info;
-        }
-        return null;
+    public static ResultInfo skipIfLotTypeMismatch(String cond,
+                                                   RuncardRawInfo rc,
+                                                   Rule rule,
+                                                   RecipeToolPair pair) {
+        return isLotTypeMismatch(rc, rule)
+                ? buildSkipInfo(rule.getRuleType(), rc, cond, rule,
+                pair, 0, "msg",
+                "lotType mismatch => skip check", false)
+                : null;
     }
 
-    public static ResultInfo checkLotTypeMismatch(String cond,
-                                                  RuncardRawInfo rc,
-                                                  Rule rule) {
-
-        if (isLotTypeMismatch(rc, rule)) {
-            ResultInfo info = new ResultInfo();
-            info.setRuleType(rule.getRuleType());
-            info.setResult(0);
-
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "lotType mismatch => skip check");
-            detail.put("runcardId", rc.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-
-            log.info("RuncardID: {} Condition: {} - lotType mismatch => skip check",
-                    rc.getRuncardId(), cond);
-            return info;
-        }
-        return null;
-    }
-
-    public static ResultInfo checkSettingsNull(String cond,
-                                               RuncardRawInfo rc,
-                                               Rule rule) {
-
-        if (rule.getSettings() == null) {
-            ResultInfo info = new ResultInfo();
-            info.setRuleType(rule.getRuleType());
-            info.setResult(0);
-
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "No settings => skip check");
-            detail.put("runcardId", rc.getRuncardId());
-            detail.put("condition", cond);
-            detail.put("lotType", rule.getLotType());
-
-            info.setDetail(detail);
-
-            log.info("RuncardID: {} Condition: {} - No settings => skip check",
-                    rc.getRuncardId(), cond);
-            return info;
-        }
-        return null;
+    public static ResultInfo skipIfSettingsNull(String cond,
+                                                RuncardRawInfo rc,
+                                                Rule rule,
+                                                RecipeToolPair pair) {
+        return rule.getSettings() == null
+                ? buildSkipInfo(rule.getRuleType(), rc, cond, rule,
+                pair, 0, "msg",
+                "No settings => skip check", false)
+                : null;
     }
 
 
@@ -219,15 +169,16 @@ public class RuleUtil {
                                            RuncardRawInfo rc,
                                            String cond,
                                            Rule rule,
-                                           String recipeId,
-                                           int result,           // 0=skip, 3=no data
-                                           String key,           // "msg" 或 "error"
+                                           RecipeToolPair pair,
+                                           int result,            // 0=skip, 3=no data
+                                           String key,            // "msg" or "error"
                                            String message,
                                            boolean isMCondition) {
 
         Map<String, Object> d = new HashMap<>();
         d.put(key, message);
-        d.put("recipeId", recipeId);
+        d.put("recipeId", pair.getRecipeId());
+        d.put("toolIds", pair.getToolIds());
         d.put("runcardId", rc.getRuncardId());
         d.put("condition", cond);
         d.put("lotType", rule.getLotType());
@@ -235,12 +186,11 @@ public class RuleUtil {
             d.put("isMCondition", true);
         }
 
-        ResultInfo ri = new ResultInfo();
-        ri.setRuleType(ruleType);
-        ri.setResult(result);
-        ri.setDetail(d);
-
-        return ri;
+        return ResultInfo.builder()
+                .ruleType(ruleType)
+                .result(result)
+                .detail(d)
+                .build();
     }
 
 }
