@@ -40,12 +40,11 @@ class RuleForwardProcessTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
 
-        // 新增參數 "TEST_COND"
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
-        // 由於場景為 lotType 為空，不應該呼叫 getForwardProcess()
+
         verify(dataLoaderService, never()).getForwardProcess(anyString());
     }
 
@@ -57,7 +56,6 @@ class RuleForwardProcessTest {
         rc.setPartId("XX-999");
         rc.setRuncardId("RC-001");
 
-        // 新增參數 "TEST_COND"
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
@@ -74,7 +72,6 @@ class RuleForwardProcessTest {
         rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
-        // 新增參數 "TEST_COND"
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(0, info.getResult());
@@ -93,7 +90,6 @@ class RuleForwardProcessTest {
 
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(Collections.emptyList());
 
-        // 新增參數 "TEST_COND"
         ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
 
         assertEquals(3, info.getResult());
