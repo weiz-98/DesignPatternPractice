@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.po.*;
+import com.example.demo.rule.RCOwnerDao;
 import com.example.demo.rule.RuleDao;
 import com.example.demo.rule.RuncardInfoDao;
 import com.example.demo.vo.*;
@@ -19,6 +20,7 @@ public class DataLoaderService {
 
     private final RuleDao ruleDao;
     private final RuncardInfoDao runcardInfoDao;
+    private final RCOwnerDao rcOwnerDao;
 
     // 取得 ForwardProcess 資料
     public List<ForwardProcess> getForwardProcess(String runcardId) {
@@ -275,5 +277,10 @@ public class DataLoaderService {
             mockList.add(status);
         }
         return mockList;
+    }
+
+    public List<IssuingEngineerInfo> getIssuingEngineerInfo(List<String> issuingEngineerIdList) {
+        Optional<List<IssuingEngineerInfo>> engineerInfos = rcOwnerDao.issuingEngineerInfo(issuingEngineerIdList);
+        return engineerInfos.orElseGet(ArrayList::new);
     }
 }

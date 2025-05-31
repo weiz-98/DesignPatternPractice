@@ -1,5 +1,6 @@
 package com.example.demo.rule;
 
+import com.example.demo.po.IssuingEngineerInfo;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.RecipeToolPair;
@@ -10,10 +11,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -49,37 +50,64 @@ public class RuleRCOwner implements IRuleCheck {
         if (r != null) return r;
 
         Map<String, Object> settings = rule.getSettings();
-        // names
-        Map<String, String> namesMap = RuleUtil.parseStringMap(settings.get("names"));
-        List<String> employeeIds = new ArrayList<>(namesMap.values());
-        List<String> employeeNames = new ArrayList<>(namesMap.keySet());
-        log.info("RuncardID: {} Condition: {} - RCOwner configured => employeeIds={}, employeeNames={}",
-                runcardRawInfo.getRuncardId(), cond, employeeIds, employeeNames);
 
-        // issuingEngineer，格式可能為 "Dept/EmpId/EmpName"
-        String engineerName = runcardRawInfo.getIssuingEngineer();
-        if (engineerName != null && engineerName.contains("/")) {
-            engineerName = engineerName.substring(engineerName.lastIndexOf('/') + 1).trim();
+        List<String> divisions = RuleUtil.parseStringList(settings.get("divisions"));
+        List<String> departments = RuleUtil.parseStringList(settings.get("departments"));
+        List<String> sections = RuleUtil.parseStringList(settings.get("sections"));
+        List<String> employees = RuleUtil.parseStringList(settings.get("employees"));
+        log.info("RuncardID: {} Condition: {} - RCOwner configured => divisions={}, departments={} sections={}, employees={},",
+                runcardRawInfo.getRuncardId(), cond, divisions, departments, sections, employees);
+
+        Optional<String> empIdOpt = extractEmpId(runcardRawInfo.getIssuingEngineer());
+        if (empIdOpt.isEmpty()) {
+            log.info("RuncardID: {} Condition: {} - issuingEngineer format unexpected => skip",
+                    runcardRawInfo.getRuncardId(), cond);
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeToolPair, 3, "error",
+                    "issuingEngineer format unexpected (empId not found) => skip", false);
+        }
+        String empId = empIdOpt.get();
+
+        List<IssuingEngineerInfo> issuingEngineerInfos = dataLoaderService.getIssuingEngineerInfo(List.of(empId));
+        if (issuingEngineerInfos.isEmpty()) {
+            log.info("RuncardID: {} Condition: {} - No IssuingEngineerInfos data => skip",
+                    runcardRawInfo.getRuncardId(), cond);
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeToolPair, 3, "error", "No IssuingEngineerInfos data => skip", false);
         }
 
-        boolean found = employeeNames.contains(engineerName);
+        IssuingEngineerInfo matchedEngineer = issuingEngineerInfos.stream()
+                .filter(engineerInfo -> empId.equals(engineerInfo.getEngineerId()))
+                .findFirst()
+                .orElse(null);
+
+        if (matchedEngineer == null) {
+            log.info("RuncardID: {} Condition: {} - No matching IssuingEngineerInfo data => skip",
+                    runcardRawInfo.getRuncardId(), cond);
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
+                    recipeToolPair, 3, "error", "No matching IssuingEngineerInfo data => skip", false);
+        }
+
+        boolean divisionMatch = divisions.contains(matchedEngineer.getDivisionId());
+        boolean departmentMatch = departments.contains(matchedEngineer.getDepartmentId());
+        boolean sectionMatch = sections.contains(matchedEngineer.getSectionId());
+        boolean employeeMatch = employees.contains(matchedEngineer.getEngineerId());
+
+        boolean found = divisionMatch || departmentMatch || sectionMatch || employeeMatch;
         int lamp = found ? 2 : 1;
 
-        log.info("RuncardID: {} Condition: {} - RCOwner check => found = '{}'",
-                runcardRawInfo.getRuncardId(), cond, found);
-
-        // sections
-        Map<String, String> sectionsMap = RuleUtil.parseStringMap(settings.get("sections"));
-        List<String> sectionNames = new ArrayList<>(sectionsMap.keySet());
+        log.info("RuncardID: {} Condition: {} - RCOwner check => divisionMatch = '{}', departmentMatch = '{}', sectionMatch = '{}', employeeMatch = '{}',",
+                runcardRawInfo.getRuncardId(), cond, divisionMatch, departmentMatch, sectionMatch, employeeMatch);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
         detailMap.put("toolIds", recipeToolPair.getToolIds());
         detailMap.put("result", lamp);
-        detailMap.put("issuingEngineer", engineerName);
-        detailMap.put("configuredRCOwnerOrg", sectionNames);
-        detailMap.put("configuredRCOwnerEmployeeId", employeeIds);
-        detailMap.put("configuredRCOwnerName", employeeNames);
+        detailMap.put("issuingEngineer", runcardRawInfo.getIssuingEngineer());
+        detailMap.put("configuredDivisionsIds", divisions);
+        detailMap.put("configuredDepartmentIds", departments);
+        detailMap.put("configuredSectionsIds", sections);
+        detailMap.put("configuredEmployeesIds", employees);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());
         detailMap.put("condition", cond);
         detailMap.put("lotType", rule.getLotType());
@@ -96,4 +124,13 @@ public class RuleRCOwner implements IRuleCheck {
         return info;
     }
 
+    private Optional<String> extractEmpId(String issuingEngineer) {
+        if (issuingEngineer == null || issuingEngineer.isBlank()) {
+            return Optional.empty();
+        }
+        String[] parts = issuingEngineer.split("/", 3);
+        return (parts.length >= 2 && !parts[1].isBlank())
+                ? Optional.of(parts[1].trim())
+                : Optional.empty();
+    }
 }

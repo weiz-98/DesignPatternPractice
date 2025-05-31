@@ -1,5 +1,6 @@
 package com.example.demo.rule;
 
+import com.example.demo.po.IssuingEngineerInfo;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ResultInfo;
@@ -16,9 +17,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RuleRCOwnerTest {
@@ -31,11 +34,8 @@ class RuleRCOwnerTest {
     @InjectMocks
     private RuleRCOwner ruleRCOwner;
 
-    /**
-     * 每個 test 都用同一筆 OneConditionRecipeAndToolInfo
-     */
     @BeforeEach
-    void mockRecipeInfo() {
+    void stubRecipeInfo() {
         OneConditionRecipeAndToolInfo info = OneConditionRecipeAndToolInfo.builder()
                 .condition(COND)
                 .recipeId("RECIPE-AAA")
@@ -45,153 +45,163 @@ class RuleRCOwnerTest {
                 .thenReturn(List.of(info));
     }
 
-
     @Test
-    void check_lotTypeEmpty() {
+    void lotTypeEmpty_shouldSkip() {
         Rule rule = new Rule();
-        rule.setLotType(Collections.emptyList());
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
-        assertEquals(0, info.getResult());
-        assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
+        assertEquals(0, res.getResult());
+        assertEquals("lotType is empty => skip check", res.getDetail().get("msg"));
     }
 
     @Test
-    void check_lotTypeMismatch() {
+    void lotTypeMismatch_shouldSkip() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setPartId("XX-ABC");
         rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
-        assertEquals(0, info.getResult());
-        assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
+        assertEquals(0, res.getResult());
+        assertEquals("lotType mismatch => skip check", res.getDetail().get("msg"));
     }
 
     @Test
-    void check_noSettings() {
+    void settingsNull_shouldSkip() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(null);
-        RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-123");
-        rc.setRuncardId("RC-001");
+        RuncardRawInfo rc = new RuncardRawInfo("RC-001", null, null,
+                "TM-123", null, null, null, null, null);
 
-        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
-        assertEquals(0, info.getResult());
-        assertEquals("No settings => skip check", info.getDetail().get("msg"));
+        assertEquals(0, res.getResult());
+        assertEquals("No settings => skip check", res.getDetail().get("msg"));
     }
 
+
     @Test
-    void check_foundEmployee() {
+    void foundByDivision_shouldReturnYellowLamp() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "names", List.of(
-                        Map.of("Alice", "ENG-A"),
-                        Map.of("Bob", "ENG-B")
-                ),
-                "sections", List.of(
-                        Map.of("sectionX", "orgX"),
-                        Map.of("sectionY", "orgY")
-                )
+                "divisions", List.of("DIV-1"),           // test division
+                "departments", List.of("DEP-X"),
+                "sections", List.of("SEC-X"),
+                "employees", List.of("EMP-Z")
         ));
+
+        // ------ runcard ------
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-123");
-        rc.setIssuingEngineer("SEC1/ENG-A/Alice");
         rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("DEP-1/EMP-A/Alice");        // empId=EMP-A
 
-        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
+        IssuingEngineerInfo eng = IssuingEngineerInfo.builder()
+                .engineerId("EMP-A").engineerName("Alice")
+                .divisionId("DIV-1").divisionName("DivName")
+                .departmentId("DEP-1").departmentName("DepName")
+                .sectionId("SEC-1").sectionName("SecName")
+                .build();
+        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+                .thenReturn(List.of(eng));
 
-        assertEquals(2, info.getResult());
-        assertEquals("Alice", info.getDetail().get("issuingEngineer"));
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
-        List<String> empIds = (List<String>) info.getDetail().get("configuredRCOwnerEmployeeId");
-        assertTrue(empIds.contains("ENG-A"));
-        assertTrue(empIds.contains("ENG-B"));
-
-        List<String> secs = (List<String>) info.getDetail().get("configuredRCOwnerOrg");
-        assertTrue(secs.contains("sectionX"));
-        assertTrue(secs.contains("sectionY"));
+        assertEquals(2, res.getResult());                   // 黃燈
+        assertEquals("DEP-1/EMP-A/Alice", res.getDetail().get("issuingEngineer"));
     }
 
     @Test
-    void check_notFoundEmployee() {
+    void noFieldMatches_shouldReturnGreenLamp() {
+        // rule 只允許 DIV-9 / EMP-Z，但工程師屬於 DIV-1
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "names", List.of(
-                        Map.of("Alice", "ENG-A"),
-                        Map.of("Bob", "ENG-B")
-                ),
-                "sections", List.of(
-                        Map.of("sectionX", "orgX"),
-                        Map.of("sectionY", "orgY")
-                )
+                "divisions", List.of("DIV-9"),    // no Match
+                "departments", List.of("DEP-X"),    // no Match
+                "sections", List.of("SEC-X"),    // no Match
+                "employees", List.of("EMP-Z")     // no Match
         ));
 
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-999"); // => startWithTM=false => containProd => shouldCheck= false => pass
-        rc.setIssuingEngineer("SEC2/ENG-X/Charlie");
         rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("DEP-1/EMP-A/Alice");
 
-        ResultInfo info = ruleRCOwner.check("TEST_COND", rc, rule);
+        IssuingEngineerInfo eng = IssuingEngineerInfo.builder()
+                .engineerId("EMP-A").engineerName("Alice")
+                .divisionId("DIV-1").departmentId("DEP-1").sectionId("SEC-1")
+                .build();
+        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+                .thenReturn(List.of(eng));
 
-        assertEquals(1, info.getResult());
-        assertEquals("Charlie", info.getDetail().get("issuingEngineer"));
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
-        List<String> empIds = (List<String>) info.getDetail().get("configuredRCOwnerEmployeeId");
-        assertTrue(empIds.contains("ENG-A"));
-        assertTrue(empIds.contains("ENG-B"));
-        assertFalse(empIds.contains("ENG-X"));
-
-        List<String> sec = (List<String>) info.getDetail().get("configuredRCOwnerOrg");
-        assertEquals("sectionX", sec.get(0));
+        assertEquals(1, res.getResult());
     }
 
-    /**
-     * issuingEngineer 僅單一字串，無 '/'，應直接比對
-     */
+
     @Test
-    void check_plainEngineerName() {
+    void issuingEngineerWithoutSlash_shouldSkip() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "names", List.of(Map.of("Alice", "ENG-A")),
-                "sections", Collections.emptyList()
+                "divisions", Collections.emptyList(),
+                "departments", Collections.emptyList(),
+                "sections", Collections.emptyList(),
+                "employees", Collections.emptyList()
         ));
         RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-123");
-        rc.setIssuingEngineer("Alice");          // ★ 無 '/'
         rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("Alice");              // no '/'
 
-        ResultInfo info = ruleRCOwner.check("TEST", rc, rule);
-        assertEquals(2, info.getResult());
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+
+        assertEquals(3, res.getResult());
+        assertEquals("issuingEngineer format unexpected (empId not found) => skip",
+                res.getDetail().get("error"));
     }
 
     /**
      * issuingEngineer 僅 "EmpId/EmpName" 兩段，也要能抓到最後一段
      */
     @Test
-    void check_twoSegmentsEngineerName() {
+    void twoSegmentEngineer_shouldWork() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "names", List.of(Map.of("Bob", "ENG-B")),
-                "sections", Collections.emptyList()
+                "divisions", Collections.emptyList(),
+                "departments", Collections.emptyList(),
+                "sections", Collections.emptyList(),
+                /* ★ 用『第二段』 = Bob 來白名單比對 */
+                "employees", List.of("Bob")
         ));
-        RuncardRawInfo rc = new RuncardRawInfo();
-        rc.setPartId("TM-123");
-        rc.setIssuingEngineer("ENG-B/Bob");      // ★ 兩段
-        rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleRCOwner.check("TEST", rc, rule);
-        assertEquals(2, info.getResult());
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("EMP-B/Bob");          // 兩段；empId 解析結果 = "Bob"
+
+        /* stub 回傳 engineerId = "Bob" 才能被 filter 命中 */
+        IssuingEngineerInfo eng = IssuingEngineerInfo.builder()
+                .engineerId("Bob").engineerName("Bob")
+                .divisionId("DIV-0").departmentId("DEP-0").sectionId("SEC-0")
+                .build();
+        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+                .thenReturn(List.of(eng));
+
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+
+        assertEquals(2, res.getResult());            // 黃燈：employeeMatch 命中
+        assertEquals("EMP-B/Bob", res.getDetail().get("issuingEngineer"));
     }
+
 }
