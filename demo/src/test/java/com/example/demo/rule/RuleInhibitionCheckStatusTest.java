@@ -43,7 +43,7 @@ class RuleInhibitionCheckStatusTest {
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
-        // 由於 lotType 為空，不應該呼叫 getInhibitionCheckStatus()
+
         verify(dataLoaderService, never()).getInhibitionCheckStatus(anyString());
     }
 
@@ -88,7 +88,7 @@ class RuleInhibitionCheckStatusTest {
         rc.setPartId("TM-123");
 
         List<InhibitionCheckStatus> mockList = List.of(
-                new InhibitionCheckStatus("01", "Y"),   // ← 測試目標
+                new InhibitionCheckStatus("01", "Y"),
                 new InhibitionCheckStatus("02", "N")
         );
         when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
@@ -111,7 +111,7 @@ class RuleInhibitionCheckStatusTest {
 
         List<InhibitionCheckStatus> mockList = List.of(
                 new InhibitionCheckStatus("01", "Y"),
-                new InhibitionCheckStatus("02", "N")   // ← 測試目標 (condition = "02")
+                new InhibitionCheckStatus("02", "N")
         );
         when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
 
@@ -121,5 +121,49 @@ class RuleInhibitionCheckStatusTest {
         assertEquals(false, info.getDetail().get("inhibitionCheck"));
         verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
     }
+
+    @Test
+    void condWithM_shouldSkipMCondition() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+
+        when(dataLoaderService.getRecipeAndToolInfo(anyString()))
+                .thenReturn(Collections.emptyList());
+
+        ResultInfo res = ruleInhibitionCheckStatus.check("01_M01", rc, rule);
+
+        assertEquals(0, res.getResult());
+        assertEquals("Skip M-Condition", res.getDetail().get("msg"));
+        assertEquals(Boolean.TRUE, res.getDetail().get("isMCondition"));
+
+        verify(dataLoaderService, never()).getInhibitionCheckStatus(anyString());
+    }
+
+    @Test
+    void noRecordForCond_shouldSkip() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+
+        List<InhibitionCheckStatus> list = List.of(
+                new InhibitionCheckStatus("99", "Y")
+        );
+        when(dataLoaderService.getInhibitionCheckStatus(anyString()))
+                .thenReturn(list);
+
+        ResultInfo res = ruleInhibitionCheckStatus.check("01", rc, rule);
+
+        assertEquals(3, res.getResult());
+        assertEquals("No InhibitionCheckStatus for condition",
+                res.getDetail().get("error"));
+
+        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
+    }
+
 
 }

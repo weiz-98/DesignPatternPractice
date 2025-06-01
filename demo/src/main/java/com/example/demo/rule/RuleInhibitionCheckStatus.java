@@ -38,6 +38,8 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
                 .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
 
         if (cond.contains("_M")) {
+            log.info("RuncardID: {} Condition: {} - This condition is multiple recipe data => skip",
+                    runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
                     recipeToolPair, 0, "msg", "Skip M-Condition", true);
         }

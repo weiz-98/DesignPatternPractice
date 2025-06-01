@@ -175,6 +175,9 @@ public class RuleUtil {
                                            String message,
                                            boolean isMCondition) {
 
+        log.info("RuncardID: {} Condition: {} - '{}' - {}",
+                rc.getRuncardId(), cond, key, message);
+
         Map<String, Object> d = new HashMap<>();
         d.put(key, message);
         d.put("recipeId", pair.getRecipeId());
