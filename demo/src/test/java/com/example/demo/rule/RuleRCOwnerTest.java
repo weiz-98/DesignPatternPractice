@@ -39,7 +39,7 @@ class RuleRCOwnerTest {
         OneConditionRecipeAndToolInfo info = OneConditionRecipeAndToolInfo.builder()
                 .condition(COND)
                 .recipeId("RECIPE-AAA")
-                .toolIdList("")
+                .toolIdList("TOOL1,TOOL2")
                 .build();
         lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString()))
                 .thenReturn(List.of(info));
@@ -97,7 +97,6 @@ class RuleRCOwnerTest {
                 "employees", List.of("EMP-Z")
         ));
 
-        // ------ runcard ------
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
@@ -114,13 +113,12 @@ class RuleRCOwnerTest {
 
         ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
-        assertEquals(2, res.getResult());                   // 黃燈
+        assertEquals(2, res.getResult());
         assertEquals("DEP-1/EMP-A/Alice", res.getDetail().get("issuingEngineer"));
     }
 
     @Test
     void noFieldMatches_shouldReturnGreenLamp() {
-        // rule 只允許 DIV-9 / EMP-Z，但工程師屬於 DIV-1
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
@@ -161,7 +159,7 @@ class RuleRCOwnerTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
-        rc.setIssuingEngineer("Alice");              // no '/'
+        rc.setIssuingEngineer("EMP-A/AliceId");              // only two '/'
 
         ResultInfo res = ruleRCOwner.check(COND, rc, rule);
 
@@ -169,39 +167,59 @@ class RuleRCOwnerTest {
         assertEquals("issuingEngineer format unexpected (empId not found) => skip",
                 res.getDetail().get("error"));
     }
-
-    /**
-     * issuingEngineer 僅 "EmpId/EmpName" 兩段，也要能抓到最後一段
-     */
     @Test
-    void twoSegmentEngineer_shouldWork() {
+    void noIssuingEngineerInfo_shouldSkip() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "divisions", Collections.emptyList(),
+                "divisions",   Collections.emptyList(),
                 "departments", Collections.emptyList(),
-                "sections", Collections.emptyList(),
-                /* ★ 用『第二段』 = Bob 來白名單比對 */
-                "employees", List.of("Bob")
+                "sections",    Collections.emptyList(),
+                "employees",   Collections.emptyList()
         ));
 
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
-        rc.setIssuingEngineer("EMP-B/Bob");          // 兩段；empId 解析結果 = "Bob"
+        rc.setIssuingEngineer("DEP-A/EMP-A/Alice");      // empId = EMP-A
 
-        /* stub 回傳 engineerId = "Bob" 才能被 filter 命中 */
-        IssuingEngineerInfo eng = IssuingEngineerInfo.builder()
-                .engineerId("Bob").engineerName("Bob")
-                .divisionId("DIV-0").departmentId("DEP-0").sectionId("SEC-0")
-                .build();
         when(dataLoaderService.getIssuingEngineerInfo(anyList()))
-                .thenReturn(List.of(eng));
+                .thenReturn(Collections.emptyList());
 
         ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        assertEquals(3, res.getResult());
+        assertEquals("No IssuingEngineerInfos data => skip",
+                res.getDetail().get("error"));
+    }
 
-        assertEquals(2, res.getResult());            // 黃燈：employeeMatch 命中
-        assertEquals("EMP-B/Bob", res.getDetail().get("issuingEngineer"));
+    @Test
+    void noMatchedEngineer_shouldSkip() {
+        Rule rule = new Rule();
+        rule.setLotType(List.of("Prod"));
+        rule.setSettings(Map.of(
+                "divisions",   Collections.emptyList(),
+                "departments", Collections.emptyList(),
+                "sections",    Collections.emptyList(),
+                "employees",   Collections.emptyList()
+        ));
+
+        RuncardRawInfo rc = new RuncardRawInfo();
+        rc.setRuncardId("RC-001");
+        rc.setPartId("TM-123");
+        rc.setIssuingEngineer("DEP-A/EMP-A/Alice");      // empId = EMP-A
+
+        // stub：only EMP-B → no match
+        IssuingEngineerInfo other = IssuingEngineerInfo.builder()
+                .engineerId("EMP-B").engineerName("Bob")
+                .divisionId("DIV-X").departmentId("DEP-X").sectionId("SEC-X")
+                .build();
+        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+                .thenReturn(List.of(other));
+
+        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        assertEquals(3, res.getResult());
+        assertEquals("No matching IssuingEngineerInfo data => skip",
+                res.getDetail().get("error"));
     }
 
 }

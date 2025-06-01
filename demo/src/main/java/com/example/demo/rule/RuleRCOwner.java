@@ -129,7 +129,7 @@ public class RuleRCOwner implements IRuleCheck {
             return Optional.empty();
         }
         String[] parts = issuingEngineer.split("/", 3);
-        return (parts.length >= 2 && !parts[1].isBlank())
+        return (parts.length > 2 && !parts[1].isBlank())
                 ? Optional.of(parts[1].trim())
                 : Optional.empty();
     }
