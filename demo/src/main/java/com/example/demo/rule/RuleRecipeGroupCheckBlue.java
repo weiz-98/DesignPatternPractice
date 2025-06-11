@@ -22,22 +22,11 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
     private final DataLoaderService dataLoaderService;
 
     @Override
-    public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
-        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue check start",
-                runcardRawInfo.getRuncardId(), cond);
-
-        ResultInfo info = new ResultInfo();
-        info.setRuleType(rule.getRuleType());
-
-        RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
-                .stream()
-                .filter(o -> cond.equals(o.getCondition()))
-                .findFirst()
-                .map(o -> RecipeToolPair.builder()
-                        .recipeId(o.getRecipeId())
-                        .toolIds(o.getToolIdList())
-                        .build())
-                .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
+    public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
+        RuncardRawInfo runcardRawInfo = ruleExecutionContext.getRuncardRawInfo();
+        String cond = ruleExecutionContext.getCond();
+        RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue check start", runcardRawInfo.getRuncardId(), cond);
 
         ResultInfo r;
         r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
@@ -57,10 +46,8 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
                 })
                 .toList();
         if (filteredGroups.isEmpty()) {
-            log.info("RuncardID: {} Condition: {} - No RecipeGroupsAndToolInfo for condition",
-                    runcardRawInfo.getRuncardId(), cond);
-            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
-                    recipeToolPair, 3, "error", "No RecipeGroupsAndToolInfo for condition", false);
+            log.info("RuncardID: {} Condition: {} - No RecipeGroupsAndToolInfo for condition", runcardRawInfo.getRuncardId(), cond);
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 3, "error", "No RecipeGroupsAndToolInfo for condition", false);
         }
 
         // 這邊按理來說只會有一筆(mapping 到指定的 condition)
@@ -76,13 +63,11 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         // 5) 取得 RecipeGroupCheckBlue
         List<RecipeGroupCheckBlue> checkBlueList =
                 dataLoaderService.getRecipeGroupCheckBlue(recipeGroupId, toolIds);
-        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue retrieved {} for recipeGroupId: {} and toolIds: {}",
-                runcardRawInfo.getRuncardId(), cond, checkBlueList.size(), recipeGroupId, toolIds);
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue retrieved {} for recipeGroupId: {} and toolIds: {}", runcardRawInfo.getRuncardId(), cond, checkBlueList.size(), recipeGroupId, toolIds);
 
 
         Map<String, List<List<String>>> grouped = ToolChamberUtil.parseChamberGrouped(toolIds, recipeToolPair.getRecipeId());
-        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue parsed chamber grouped from recipeId: {} -> {}",
-                runcardRawInfo.getRuncardId(), cond, recipeToolPair.getRecipeId(), grouped);
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue parsed chamber grouped from recipeId: {} -> {}", runcardRawInfo.getRuncardId(), cond, recipeToolPair.getRecipeId(), grouped);
 
         boolean pass = true;
         List<String> failTools = new ArrayList<>();
@@ -147,15 +132,13 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         detailMap.put("condition", cond);
         detailMap.put("lotType", rule.getLotType());
 
-        info.setResult(lamp);
-        info.setDetail(detailMap);
-
-        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue detail = {}",
-                runcardRawInfo.getRuncardId(), cond, detailMap);
-
-        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue check done, lamp = '{}'",
-                runcardRawInfo.getRuncardId(), cond, lamp);
-        return info;
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue detail = {}", runcardRawInfo.getRuncardId(), cond, detailMap);
+        log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue check done, lamp = '{}'", runcardRawInfo.getRuncardId(), cond, lamp);
+        return ResultInfo.builder()
+                .ruleType(rule.getRuleType())
+                .result(lamp)
+                .detail(detailMap)
+                .build();
     }
 
     /**

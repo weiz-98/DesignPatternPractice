@@ -3,10 +3,7 @@ package com.example.demo.rule;
 import com.example.demo.po.ForwardProcess;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
-import com.example.demo.vo.RecipeToolPair;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -25,22 +22,11 @@ public class RuleForwardProcess implements IRuleCheck {
     private final DataLoaderService dataLoaderService;
 
     @Override
-    public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
-        log.info("RuncardID: {} Condition: {} - ForwardProcess check start",
-                runcardRawInfo.getRuncardId(), cond);
-
-        ResultInfo info = new ResultInfo();
-        info.setRuleType(rule.getRuleType());
-
-        RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
-                .stream()
-                .filter(o -> cond.equals(o.getCondition()))
-                .findFirst()
-                .map(o -> RecipeToolPair.builder()
-                        .recipeId(o.getRecipeId())
-                        .toolIds(o.getToolIdList())
-                        .build())
-                .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
+    public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
+        RuncardRawInfo runcardRawInfo = ruleExecutionContext.getRuncardRawInfo();
+        String cond = ruleExecutionContext.getCond();
+        RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check start", runcardRawInfo.getRuncardId(), cond);
 
         ResultInfo r;
         r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
@@ -57,20 +43,14 @@ public class RuleForwardProcess implements IRuleCheck {
         List<String> recipeIds = RuleUtil.parseStringList(settings.get("recipeIds"));
         List<String> toolIds = RuleUtil.parseStringList(settings.get("toolIds"));
 
-        log.info("RuncardID: {} Condition: {} - ForwardProcess configured => forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}",
-                runcardRawInfo.getRuncardId(), cond, forwardSteps, includeMeasurement, recipeIds, toolIds);
+        log.info("RuncardID: {} Condition: {} - ForwardProcess configured => forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}", runcardRawInfo.getRuncardId(), cond, forwardSteps, includeMeasurement, recipeIds, toolIds);
 
         List<ForwardProcess> allForward = dataLoaderService.getForwardProcess(runcardRawInfo.getRuncardId());
         if (allForward.isEmpty()) {
-            log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip",
-                    runcardRawInfo.getRuncardId(), cond);
-            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
-                    recipeToolPair, 3, "error", "No ForwardProcess data => skip", false);
+            log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip", runcardRawInfo.getRuncardId(), cond);
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 3, "error", "No ForwardProcess data => skip", false);
         }
-
-        log.info("RuncardID: {} Condition: {} - ForwardProcess retrieved {} rows",
-                runcardRawInfo.getRuncardId(), cond,
-                allForward.size());
+        log.info("RuncardID: {} Condition: {} - ForwardProcess retrieved {} rows", runcardRawInfo.getRuncardId(), cond, allForward.size());
 
         // 4.1) 先保留前 forwardSteps 筆 (若總數 < forwardSteps，就全留)
         List<ForwardProcess> limitedList = allForward.subList(0, Math.min(forwardSteps, allForward.size()));
@@ -92,8 +72,7 @@ public class RuleForwardProcess implements IRuleCheck {
         boolean pass = passRecipe && passTool;
         int lamp = pass ? 1 : 3;
 
-        log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe = '{}', passTool = '{}'",
-                runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe = '{}', passTool = '{}'", runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
@@ -116,16 +95,14 @@ public class RuleForwardProcess implements IRuleCheck {
         detailMap.put("condition", cond);
         detailMap.put("lotType", rule.getLotType());
 
-        info.setResult(lamp);
-        info.setDetail(detailMap);
+        log.info("RuncardID: {} Condition: {} - ForwardProcess detail = {}", runcardRawInfo.getRuncardId(), cond, detailMap);
+        log.info("RuncardID: {} Condition: {} - ForwardProcess check done, lamp = '{}'", runcardRawInfo.getRuncardId(), cond, lamp);
 
-        log.info("RuncardID: {} Condition: {} - ForwardProcess detail = {}",
-                runcardRawInfo.getRuncardId(), cond, detailMap);
-
-        log.info("RuncardID: {} Condition: {} - ForwardProcess check done, lamp = '{}'",
-                runcardRawInfo.getRuncardId(), cond, lamp);
-
-        return info;
+        return ResultInfo.builder()
+                .ruleType(rule.getRuleType())
+                .result(lamp)
+                .detail(detailMap)
+                .build();
     }
 
     /**
@@ -143,13 +120,12 @@ public class RuleForwardProcess implements IRuleCheck {
             return true;
         }
 
-        // 1) 先把每個字串 pattern 轉成 RecipePatternMatcher
         List<RecipePatternMatcher> matchers = configuredRecipeIds.stream()
                 .filter(p -> p != null && !p.trim().isEmpty())
                 .map(this::toMatcher)
                 .toList();
 
-        // 2) 每個 matcher 至少要命中一筆 ForwardProcess 才算 pass
+        // matcher 至少要命中一筆 ForwardProcess 才算 pass
         for (RecipePatternMatcher matcher : matchers) {
             boolean matched = filteredForwardProcesses.stream()
                     .map(fp -> fp.getRecipeId() == null ? "" : fp.getRecipeId())
@@ -198,22 +174,31 @@ public class RuleForwardProcess implements IRuleCheck {
 
 
     /**
-     * toolIds 裡的每個 pattern => 需在 filteredForwardProcesses 中找到至少一筆 toolId==pattern
-     * 若找不到 => fail
+     * toolIds 裡的每個 pattern → 至少要在 filteredForwardProcesses 找到 1 筆符合
+     * 規則與 recipe pattern 相同：支援 %, %xxx, xxx%, %xxx%
      */
-    private boolean checkToolPatterns(List<ForwardProcess> filteredForwardProcesses, List<String> configuredToolIds) {
-        for (String neededTool : configuredToolIds) {
-            boolean matchedThis = false;
-            for (ForwardProcess fp : filteredForwardProcesses) {
-                if (neededTool.equals(fp.getToolId())) {
-                    matchedThis = true;
-                    break;
-                }
-            }
-            if (!matchedThis) {
-                return false;
+    private boolean checkToolPatterns(List<ForwardProcess> filteredForwardProcesses,
+                                      List<String> configuredToolIds) {
+        if (configuredToolIds == null || configuredToolIds.isEmpty()) {
+            return true;
+        }
+
+        List<RecipePatternMatcher> matchers = configuredToolIds.stream()
+                .filter(p -> p != null && !p.trim().isEmpty())
+                .map(this::toMatcher)
+                .toList();
+
+        // 每個 matcher 至少命中一筆 toolId
+        for (RecipePatternMatcher matcher : matchers) {
+            boolean matched = filteredForwardProcesses.stream()
+                    .map(fp -> fp.getToolId() == null ? "" : fp.getToolId())
+                    .anyMatch(matcher::match);
+
+            if (!matched) {
+                return false;   // 只要有一個 pattern 沒命中 → 整體 fail
             }
         }
-        return true;
+        return true;            // 全部 pattern 都命中 → pass
     }
+
 }

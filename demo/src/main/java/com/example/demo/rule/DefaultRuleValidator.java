@@ -1,8 +1,7 @@
 package com.example.demo.rule;
 
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.service.DataLoaderService;
+import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -15,6 +14,7 @@ import java.util.*;
 public class DefaultRuleValidator implements IRuleValidator {
 
     private final RuleCheckFactory ruleCheckFactory;
+    private final DataLoaderService dataLoaderService;
 
     /**
      * 逐一將每個 group 所 mapping 到的 rule 用 RuleCheckFactory 取得對應 checker 來執行檢查
@@ -22,16 +22,31 @@ public class DefaultRuleValidator implements IRuleValidator {
     @Override
     public List<ResultInfo> validateRule(String cond, RuncardRawInfo runcardRawInfo, List<Rule> rules) {
         if (rules == null || rules.isEmpty()) {
-            log.error("Runcard ID : {} has no rules to validate",
-                    (runcardRawInfo != null ? runcardRawInfo.getRuncardId() : "UNKNOWN"));
+            log.error("Runcard ID : {} has no rules to validate", (runcardRawInfo != null ? runcardRawInfo.getRuncardId() : "UNKNOWN"));
             return Collections.emptyList();
         }
 
         List<ResultInfo> results = new ArrayList<>();
         for (Rule rule : rules) {
             try {
+                RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                        .stream()
+                        .filter(o -> cond.equals(o.getCondition()))
+                        .findFirst()
+                        .map(o -> RecipeToolPair.builder()
+                                .recipeId(o.getRecipeId())
+                                .toolIds(o.getToolIdList())
+                                .build())
+                        .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
+
+                RuleExecutionContext ruleExecutionContext = RuleExecutionContext.builder()
+                        .cond(cond)
+                        .runcardRawInfo(runcardRawInfo)
+                        .recipeToolPair(recipeToolPair)
+                        .build();
+
                 IRuleCheck checker = ruleCheckFactory.getRuleCheck(rule.getRuleType());
-                ResultInfo info = checker.check(cond, runcardRawInfo, rule);
+                ResultInfo info = checker.check(ruleExecutionContext, rule);
                 results.add(info);
             } catch (Exception ex) {
                 // 如果該 rule 找不到對應的 checker 或執行出錯 => 做個紅燈
@@ -147,8 +162,7 @@ public class DefaultRuleValidator implements IRuleValidator {
                 }
             }
         }
-        log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}",
-                runcardId, condition, ruleType, groupNames, infosOfSameRule, maxResult);
+        log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}", runcardId, condition, ruleType, groupNames, infosOfSameRule, maxResult);
     }
 }
 

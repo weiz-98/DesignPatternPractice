@@ -2,9 +2,7 @@ package com.example.demo.rule;
 
 import com.example.demo.po.ForwardProcess;
 import com.example.demo.service.DataLoaderService;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -28,9 +26,20 @@ class RuleForwardProcessTest {
     @InjectMocks
     private RuleForwardProcess ruleForwardProcess;
 
+    private RuleExecutionContext ctx(String cond, RuncardRawInfo rc) {
+        RecipeToolPair emptyPair = RecipeToolPair.builder().recipeId("recipe01").toolIds("tool01").build();
+        return RuleExecutionContext.builder()
+                .cond(cond)
+                .runcardRawInfo(rc)
+                .recipeToolPair(emptyPair)
+                .build();
+    }
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
+        lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString()))
+                .thenReturn(Collections.emptyList());
     }
 
     @Test
@@ -40,7 +49,7 @@ class RuleForwardProcessTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
@@ -56,7 +65,7 @@ class RuleForwardProcessTest {
         rc.setPartId("XX-999");
         rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(0, info.getResult());
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
@@ -72,7 +81,7 @@ class RuleForwardProcessTest {
         rc.setPartId("TM-123");
         rc.setRuncardId("RC-001");
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(0, info.getResult());
         assertEquals("No settings => skip check", info.getDetail().get("msg"));
@@ -90,7 +99,7 @@ class RuleForwardProcessTest {
 
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(Collections.emptyList());
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(3, info.getResult());
         assertEquals("No ForwardProcess data => skip", info.getDetail().get("error"));
@@ -118,7 +127,7 @@ class RuleForwardProcessTest {
 
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, info.getResult(), "all match");
         assertEquals(1, info.getDetail().get("result"));
@@ -146,7 +155,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(3, info.getResult(), "找不到 recipeId= 'ABC' => fail =>3");
         verify(dataLoaderService, times(1)).getForwardProcess(anyString());
@@ -171,7 +180,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(3, info.getResult(), "TOOL-2 不存在 => fail =>3");
         verify(dataLoaderService, times(1)).getForwardProcess(anyString());
@@ -196,7 +205,7 @@ class RuleForwardProcessTest {
         all.add(new ForwardProcess("LOT2", "pre2", "HasMeasureTestInside", "TOOL-XYZ", "2023-09-01T10:00", "Measurement"));
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(all);
 
-        ResultInfo info = ruleForwardProcess.check("TEST_COND", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, info.getResult(), "only leave measurement");
         verify(dataLoaderService, times(1)).getForwardProcess(anyString());
@@ -226,7 +235,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
 
-        ResultInfo info = ruleForwardProcess.check("COND_EQ", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, info.getResult());
         verify(dataLoaderService).getForwardProcess(anyString());
@@ -254,7 +263,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
 
-        ResultInfo info = ruleForwardProcess.check("COND_ST", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, info.getResult());
         verify(dataLoaderService).getForwardProcess(anyString());
@@ -282,7 +291,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
 
-        ResultInfo info = ruleForwardProcess.check("COND_END", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, info.getResult());
         verify(dataLoaderService).getForwardProcess(anyString());
@@ -310,7 +319,7 @@ class RuleForwardProcessTest {
         );
         when(dataLoaderService.getForwardProcess(anyString())).thenReturn(list);
 
-        ResultInfo info = ruleForwardProcess.check("COND_CTN", rc, rule);
+        ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, info.getResult());
         verify(dataLoaderService).getForwardProcess(anyString());

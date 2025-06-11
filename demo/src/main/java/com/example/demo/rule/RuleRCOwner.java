@@ -3,10 +3,7 @@ package com.example.demo.rule;
 import com.example.demo.po.IssuingEngineerInfo;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
-import com.example.demo.vo.RecipeToolPair;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,22 +21,11 @@ public class RuleRCOwner implements IRuleCheck {
     private final DataLoaderService dataLoaderService;
 
     @Override
-    public ResultInfo check(String cond, RuncardRawInfo runcardRawInfo, Rule rule) {
-        log.info("RuncardID: {} Condition: {} - RCOwner check start",
-                runcardRawInfo.getRuncardId(), cond);
-
-        ResultInfo info = new ResultInfo();
-        info.setRuleType(rule.getRuleType());
-
-        RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
-                .stream()
-                .filter(o -> cond.equals(o.getCondition()))
-                .findFirst()
-                .map(o -> RecipeToolPair.builder()
-                        .recipeId(o.getRecipeId())
-                        .toolIds(o.getToolIdList())
-                        .build())
-                .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
+    public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
+        RuncardRawInfo runcardRawInfo = ruleExecutionContext.getRuncardRawInfo();
+        String cond = ruleExecutionContext.getCond();
+        RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
+        log.info("RuncardID: {} Condition: {} - RCOwner check start", runcardRawInfo.getRuncardId(), cond);
 
         ResultInfo r;
         r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
@@ -55,25 +41,20 @@ public class RuleRCOwner implements IRuleCheck {
         List<String> departments = RuleUtil.parseStringList(settings.get("departments"));
         List<String> sections = RuleUtil.parseStringList(settings.get("sections"));
         List<String> employees = RuleUtil.parseStringList(settings.get("employees"));
-        log.info("RuncardID: {} Condition: {} - RCOwner configured => divisions={}, departments={} sections={}, employees={},",
-                runcardRawInfo.getRuncardId(), cond, divisions, departments, sections, employees);
+        log.info("RuncardID: {} Condition: {} - RCOwner configured => divisions={}, departments={} sections={}, employees={},", runcardRawInfo.getRuncardId(), cond, divisions, departments, sections, employees);
 
         Optional<String> empIdOpt = extractEmpId(runcardRawInfo.getIssuingEngineer());
         if (empIdOpt.isEmpty()) {
-            log.info("RuncardID: {} Condition: {} - issuingEngineer format unexpected => skip",
-                    runcardRawInfo.getRuncardId(), cond);
+            log.info("RuncardID: {} Condition: {} - issuingEngineer format unexpected => skip", runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
-                    recipeToolPair, 3, "error",
-                    "issuingEngineer format unexpected (empId not found) => skip", false);
+                    recipeToolPair, 3, "error", "issuingEngineer format unexpected (empId not found) => skip", false);
         }
         String empId = empIdOpt.get();
 
         List<IssuingEngineerInfo> issuingEngineerInfos = dataLoaderService.getIssuingEngineerInfo(List.of(empId));
         if (issuingEngineerInfos.isEmpty()) {
-            log.info("RuncardID: {} Condition: {} - No IssuingEngineerInfos data => skip",
-                    runcardRawInfo.getRuncardId(), cond);
-            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
-                    recipeToolPair, 3, "error", "No IssuingEngineerInfos data => skip", false);
+            log.info("RuncardID: {} Condition: {} - No IssuingEngineerInfos data => skip", runcardRawInfo.getRuncardId(), cond);
+            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 3, "error", "No IssuingEngineerInfos data => skip", false);
         }
 
         IssuingEngineerInfo matchedEngineer = issuingEngineerInfos.stream()
@@ -82,8 +63,7 @@ public class RuleRCOwner implements IRuleCheck {
                 .orElse(null);
 
         if (matchedEngineer == null) {
-            log.info("RuncardID: {} Condition: {} - No matching IssuingEngineerInfo data => skip",
-                    runcardRawInfo.getRuncardId(), cond);
+            log.info("RuncardID: {} Condition: {} - No matching IssuingEngineerInfo data => skip", runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule,
                     recipeToolPair, 3, "error", "No matching IssuingEngineerInfo data => skip", false);
         }
@@ -96,8 +76,7 @@ public class RuleRCOwner implements IRuleCheck {
         boolean found = divisionMatch || departmentMatch || sectionMatch || employeeMatch;
         int lamp = found ? 2 : 1;
 
-        log.info("RuncardID: {} Condition: {} - RCOwner check => divisionMatch = '{}', departmentMatch = '{}', sectionMatch = '{}', employeeMatch = '{}',",
-                runcardRawInfo.getRuncardId(), cond, divisionMatch, departmentMatch, sectionMatch, employeeMatch);
+        log.info("RuncardID: {} Condition: {} - RCOwner check => divisionMatch = '{}', departmentMatch = '{}', sectionMatch = '{}', employeeMatch = '{}',", runcardRawInfo.getRuncardId(), cond, divisionMatch, departmentMatch, sectionMatch, employeeMatch);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
@@ -112,16 +91,14 @@ public class RuleRCOwner implements IRuleCheck {
         detailMap.put("condition", cond);
         detailMap.put("lotType", rule.getLotType());
 
-        info.setResult(lamp);
-        info.setDetail(detailMap);
+        log.info("RuncardID: {} Condition: {} - RCOwner detail = {}", runcardRawInfo.getRuncardId(), cond, detailMap);
+        log.info("RuncardID: {} Condition: {} - RCOwner check done, lamp = '{}'", runcardRawInfo.getRuncardId(), cond, lamp);
 
-        log.info("RuncardID: {} Condition: {} - RCOwner detail = {}",
-                runcardRawInfo.getRuncardId(), cond, detailMap);
-
-        log.info("RuncardID: {} Condition: {} - RCOwner check done, lamp = '{}'",
-                runcardRawInfo.getRuncardId(), cond, lamp);
-
-        return info;
+        return ResultInfo.builder()
+                .ruleType(rule.getRuleType())
+                .result(lamp)
+                .detail(detailMap)
+                .build();
     }
 
     private Optional<String> extractEmpId(String issuingEngineer) {

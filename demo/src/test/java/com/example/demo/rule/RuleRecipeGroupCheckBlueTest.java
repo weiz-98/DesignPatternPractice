@@ -34,6 +34,22 @@ class RuleRecipeGroupCheckBlueTest {
     private Rule ruleWithLotType;
     private static final String TEST_COND = "COND_TEST";
 
+    private RuleExecutionContext ctx(String cond,
+                                     RuncardRawInfo rc,
+                                     String toolIds,
+                                     String recipeId) {
+        return RuleExecutionContext.builder()
+                .cond(cond)
+                .runcardRawInfo(rc)
+                .recipeToolPair(
+                        RecipeToolPair.builder()
+                                .recipeId(recipeId)
+                                .toolIds(toolIds)
+                                .build())
+                .build();
+    }
+
+
     @BeforeEach
     void setUp() {
         dummyRuncard = new RuncardRawInfo();
@@ -59,7 +75,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "xxx.xx-xxxx.xxxx-{c}"
         );
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
-        stubPair(TEST_COND, "JDTM16,JDTM17,JDTM20", "xxx.xx-xxxx.xxxx-{c}");
 
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
                 new RecipeGroupCheckBlue("JDTM16", "ANY1", "1", "1"),
@@ -69,7 +84,9 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-001", List.of("JDTM16", "JDTM17", "JDTM20")))
                 .thenReturn(checkBlueList);
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17,JDTM20", "xxx.xx-xxxx.xxxx-{c}"),
+                ruleWithLotType);
 
         assertEquals(1, result.getResult());
         assertEquals(1, result.getDetail().get("result"));
@@ -90,7 +107,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "xxx.xx-xxxx.xxxx-{cEF}"
         );
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
-        stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}");
 
 
         // JDTM16 有 E, JDTM17 有 F
@@ -100,8 +116,9 @@ class RuleRecipeGroupCheckBlueTest {
         );
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-002", List.of("JDTM16", "JDTM17")))
                 .thenReturn(checkBlueList);
-
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}"),
+                ruleWithLotType);
 
         assertEquals(1, result.getResult());
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
@@ -122,10 +139,6 @@ class RuleRecipeGroupCheckBlueTest {
         );
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
 
-        stubPair(TEST_COND,
-                "JDTM16,JDTM17",
-                "xxx.xx-xxxx.xxxx-{cEF}{c134}");
-
 
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
                 // JDTM16 => E,1
@@ -139,7 +152,9 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-003", List.of("JDTM16", "JDTM17")))
                 .thenReturn(checkBlueList);
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}{c134}"),
+                ruleWithLotType);
 
         assertEquals(1, result.getResult());
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
@@ -159,7 +174,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "xxx.xx-xxxx.xxxx-{c(3;2)}"
         );
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
-        stubPair(TEST_COND, "JDTM16,JDTM20", "xxx.xx-xxxx.xxxx-{c(3;2)}");
 
         // - JDTM16, chamber=2 or 3 只要有一個 (release=1,enable=1) => pass
         // - JDTM20, chamber=2 or 3 只要有一個 => pass
@@ -170,7 +184,9 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-004", List.of("JDTM16", "JDTM20")))
                 .thenReturn(checkBlueList);
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM20", "xxx.xx-xxxx.xxxx-{c(3;2)}"),
+                ruleWithLotType);
 
         assertEquals(1, result.getResult());
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
@@ -190,7 +206,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "xxx.xx-xxxx.xxxx"
         );
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
-        stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx");
 
         // 只要 tool=JDTM16,JDTM17 各有至少一筆 release=1, enable=1 => pass
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
@@ -200,7 +215,9 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-005", List.of("JDTM16", "JDTM17")))
                 .thenReturn(checkBlueList);
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx"),
+                ruleWithLotType);
 
         assertEquals(1, result.getResult());
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
@@ -219,7 +236,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "xxx.xx-xxxx.xxxx-{cEF}"
         );
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
-        stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}");
 
         List<RecipeGroupCheckBlue> checkBlueList = List.of(
                 new RecipeGroupCheckBlue("JDTM16", "#E", "1", "1")
@@ -228,7 +244,9 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-002", List.of("JDTM16", "JDTM17")))
                 .thenReturn(checkBlueList);
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}"),
+                ruleWithLotType);
 
         assertEquals(3, result.getResult());
         // failTools 應包含 "JDTM17"
@@ -243,7 +261,9 @@ class RuleRecipeGroupCheckBlueTest {
         ruleWithEmptyLotType.setLotType(Collections.emptyList());
         ruleWithEmptyLotType.setSettings(Map.of("anyKey", "anyVal"));
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithEmptyLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}"),
+                ruleWithEmptyLotType);
 
         assertEquals(0, result.getResult());
         assertEquals("lotType is empty => skip check", result.getDetail().get("msg"));
@@ -254,7 +274,9 @@ class RuleRecipeGroupCheckBlueTest {
         // partId="XX-123" => mismatch
         dummyRuncard.setPartId("XX-123");
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx"),
+                ruleWithLotType);
 
         assertEquals(0, result.getResult());
         assertEquals("lotType mismatch => skip check", result.getDetail().get("msg"));
@@ -265,7 +287,9 @@ class RuleRecipeGroupCheckBlueTest {
         // 表示找不到對應 cond
         when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(Collections.emptyList());
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{cEF}"),
+                ruleWithLotType);
 
         assertEquals(3, result.getResult());
         assertEquals("No RecipeGroupsAndToolInfo for condition", result.getDetail().get("error"));
@@ -274,17 +298,22 @@ class RuleRecipeGroupCheckBlueTest {
     @Test
     void testEmptyCheckBlueList() {
         RecipeGroupAndTool info = new RecipeGroupAndTool(
-                TEST_COND, "RG-999", "JDTM16", "xxx.xx-xxxx.xxxx-{c}"
+                TEST_COND, "RG-999", "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{c}"
         );
-        when(dataLoaderService.getRecipeGroupAndTool(anyString())).thenReturn(List.of(info));
+        when(dataLoaderService.getRecipeGroupAndTool(anyString()))
+                .thenReturn(List.of(info));
 
-        when(dataLoaderService.getRecipeGroupCheckBlue("RG-999", List.of("JDTM16")))
+        when(dataLoaderService.getRecipeGroupCheckBlue("RG-999",
+                List.of("JDTM16", "JDTM17")))
                 .thenReturn(Collections.emptyList());
 
-        ResultInfo result = ruleRecipeGroupCheckBlue.check(TEST_COND, dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair(TEST_COND, "JDTM16,JDTM17", "xxx.xx-xxxx.xxxx-{c}"),
+                ruleWithLotType);
 
         // failTools 包含 "JDTM16"
         assertEquals(3, result.getResult());
+        @SuppressWarnings("unchecked")
         List<String> failTools = (List<String>) result.getDetail().get("failTools");
         assertTrue(failTools.contains("JDTM16"));
     }
@@ -298,7 +327,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "01", "RG-A", "JDTM99", "recipe-{c}");
         when(dataLoaderService.getRecipeGroupAndTool(anyString()))
                 .thenReturn(List.of(rgt));
-        stubPair("01_M01", "JDTM16,JDTM17", "recipe-{c}");
 
         // JDTM16、17 均 release=1, enable=1
         List<RecipeGroupCheckBlue> blues = List.of(
@@ -308,10 +336,12 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-A", List.of("JDTM16", "JDTM17")))
                 .thenReturn(blues);
 
-        ResultInfo res = ruleRecipeGroupCheckBlue.check("01_M01", dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair("01_M01", "JDTM16,JDTM17", "recipe-{c}"),
+                ruleWithLotType);
 
-        assertEquals(1, res.getResult());
-        assertEquals("JDTM16,JDTM17", res.getDetail().get("toolIdList"));
+        assertEquals(1, result.getResult());
+        assertEquals("JDTM16,JDTM17", result.getDetail().get("toolIdList"));
     }
 
     @Test
@@ -320,7 +350,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "01", "RG-B", "JDTM20,JDTM21", "recipe-{c1}");
         when(dataLoaderService.getRecipeGroupAndTool(anyString()))
                 .thenReturn(List.of(rgt));
-        stubPair("01_M02", "JDTM20,JDTM21", "recipe-{c1}");
 
         // Blue 資料只需 cover 20、21
         List<RecipeGroupCheckBlue> blues = List.of(
@@ -330,10 +359,12 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-B", List.of("JDTM20", "JDTM21")))
                 .thenReturn(blues);
 
-        ResultInfo res = ruleRecipeGroupCheckBlue.check("01_M02", dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair("01_M02", "JDTM20,JDTM21", "recipe-{c1}"),
+                ruleWithLotType);
 
-        assertEquals(1, res.getResult());
-        assertEquals("JDTM20,JDTM21", res.getDetail().get("toolIdList"));
+        assertEquals(1, result.getResult());
+        assertEquals("JDTM20,JDTM21", result.getDetail().get("toolIdList"));
     }
 
     /**
@@ -345,7 +376,6 @@ class RuleRecipeGroupCheckBlueTest {
                 "01", "RG-C", "JDTM99", "recipe-{c}");
         when(dataLoaderService.getRecipeGroupAndTool(anyString()))
                 .thenReturn(List.of(rgt));
-        stubPair("01_M03", "JDTM30,JDTM31", "recipe-{c}");
 
         // Blue 只給 JDTM30，缺 JDTM31
         List<RecipeGroupCheckBlue> blues = List.of(
@@ -354,21 +384,19 @@ class RuleRecipeGroupCheckBlueTest {
         when(dataLoaderService.getRecipeGroupCheckBlue("RG-C", List.of("JDTM30", "JDTM31")))
                 .thenReturn(blues);
 
-        ResultInfo res = ruleRecipeGroupCheckBlue.check("01_M03", dummyRuncard, ruleWithLotType);
+        ResultInfo result = ruleRecipeGroupCheckBlue.check(
+                stubPair("01_M03", "JDTM30,JDTM31", "recipe-{c}"),
+                ruleWithLotType);
 
-        assertEquals(3, res.getResult());
+        assertEquals(3, result.getResult());
         @SuppressWarnings("unchecked")
-        List<String> fail = (List<String>) res.getDetail().get("failTools");
+        List<String> fail = (List<String>) result.getDetail().get("failTools");
         assertTrue(fail.contains("JDTM31"));
     }
 
-    private void stubPair(String cond, String toolIds, String recipeId) {
-        OneConditionRecipeAndToolInfo pair = OneConditionRecipeAndToolInfo.builder()
-                .condition(cond)
-                .recipeId(recipeId)
-                .toolIdList(toolIds)
-                .build();
-        when(dataLoaderService.getRecipeAndToolInfo(anyString()))
-                .thenReturn(List.of(pair));
+    private RuleExecutionContext stubPair(String cond,
+                                          String toolIds,
+                                          String recipeId) {
+        return ctx(cond, dummyRuncard, toolIds, recipeId);
     }
 }

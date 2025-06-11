@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 @Slf4j
@@ -25,6 +26,9 @@ class DefaultRuleValidatorTest {
 
     @Mock
     private RuleCheckFactory ruleCheckFactory;
+
+    @Mock
+    private DataLoaderService dataLoaderService;
 
     @InjectMocks
     private DefaultRuleValidator defaultRuleValidator;
@@ -48,7 +52,7 @@ class DefaultRuleValidatorTest {
     @Test
     void validateRule_withValidRules() {
         // 模擬一個 IRuleCheck 會根據 ruleA 返回一個 ResultInfo
-        IRuleCheck dummyChecker = (cond, runcard, rule) -> {
+        IRuleCheck dummyChecker = (ctx, rule) -> {
             ResultInfo info = new ResultInfo();
             info.setRuleType(rule.getRuleType());
             info.setResult(1); // 模擬綠燈

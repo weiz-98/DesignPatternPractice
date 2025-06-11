@@ -2,9 +2,7 @@ package com.example.demo.rule;
 
 import com.example.demo.po.WaferCondition;
 import com.example.demo.service.DataLoaderService;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -25,6 +23,15 @@ class RuleWaferConditionTest {
     @InjectMocks
     private RuleWaferCondition ruleWaferCondition;
 
+    private RuleExecutionContext ctx(String cond, RuncardRawInfo rc) {
+        RecipeToolPair emptyPair = RecipeToolPair.builder().recipeId("recipe01").toolIds("tool01").build();
+        return RuleExecutionContext.builder()
+                .cond(cond)
+                .runcardRawInfo(rc)
+                .recipeToolPair(emptyPair)
+                .build();
+    }
+
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
@@ -38,7 +45,7 @@ class RuleWaferConditionTest {
         rc.setPartId("whatever");
         rc.setRuncardId("RC-001");
 
-        ResultInfo result = ruleWaferCondition.check("TEST_COND", rc, rule);
+        ResultInfo result = ruleWaferCondition.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(0, result.getResult());
         assertEquals("lotType is empty => skip check", result.getDetail().get("msg"));
@@ -54,7 +61,7 @@ class RuleWaferConditionTest {
         rc.setPartId("XX-123");
         rc.setRuncardId("RC-001");
 
-        ResultInfo result = ruleWaferCondition.check("TEST_COND", rc, rule);
+        ResultInfo result = ruleWaferCondition.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(0, result.getResult());
         assertEquals("lotType mismatch => skip check", result.getDetail().get("msg"));
@@ -75,7 +82,7 @@ class RuleWaferConditionTest {
         // 改為 when(...) getWaferCondition(anyString())
         when(dataLoaderService.getWaferCondition(anyString())).thenReturn(wf);
 
-        ResultInfo result = ruleWaferCondition.check("TEST_COND", rc, rule);
+        ResultInfo result = ruleWaferCondition.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(1, result.getResult(), "uniqueCount == wfrQty");
         assertEquals(true, result.getDetail().get("waferCondition"));
@@ -98,7 +105,7 @@ class RuleWaferConditionTest {
         wf.setWfrQty("100");
         when(dataLoaderService.getWaferCondition(anyString())).thenReturn(wf);
 
-        ResultInfo result = ruleWaferCondition.check("TEST_COND", rc, rule);
+        ResultInfo result = ruleWaferCondition.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(3, result.getResult(), "uniqueCount != wfrQty");
         assertEquals(false, result.getDetail().get("waferCondition"));
@@ -118,7 +125,7 @@ class RuleWaferConditionTest {
 
         when(dataLoaderService.getWaferCondition(anyString())).thenReturn(null);
 
-        ResultInfo result = ruleWaferCondition.check("TEST_COND", rc, rule);
+        ResultInfo result = ruleWaferCondition.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(3, result.getResult(), "waferCondition=null");
         assertEquals("No WaferCondition data => skip", result.getDetail().get("error"));

@@ -2,10 +2,7 @@ package com.example.demo.rule;
 
 import com.example.demo.po.IssuingEngineerInfo;
 import com.example.demo.service.DataLoaderService;
-import com.example.demo.vo.OneConditionRecipeAndToolInfo;
-import com.example.demo.vo.ResultInfo;
-import com.example.demo.vo.Rule;
-import com.example.demo.vo.RuncardRawInfo;
+import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -34,6 +31,15 @@ class RuleRCOwnerTest {
     @InjectMocks
     private RuleRCOwner ruleRCOwner;
 
+    private RuleExecutionContext ctx(String cond, RuncardRawInfo rc) {
+        RecipeToolPair emptyPair = RecipeToolPair.builder().recipeId("recipe01").toolIds("tool01").build();
+        return RuleExecutionContext.builder()
+                .cond(cond)
+                .runcardRawInfo(rc)
+                .recipeToolPair(emptyPair)
+                .build();
+    }
+
     @BeforeEach
     void stubRecipeInfo() {
         OneConditionRecipeAndToolInfo info = OneConditionRecipeAndToolInfo.builder()
@@ -51,7 +57,7 @@ class RuleRCOwnerTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
 
         assertEquals(0, res.getResult());
         assertEquals("lotType is empty => skip check", res.getDetail().get("msg"));
@@ -65,7 +71,7 @@ class RuleRCOwnerTest {
         rc.setPartId("XX-ABC");
         rc.setRuncardId("RC-001");
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
 
         assertEquals(0, res.getResult());
         assertEquals("lotType mismatch => skip check", res.getDetail().get("msg"));
@@ -79,7 +85,7 @@ class RuleRCOwnerTest {
         RuncardRawInfo rc = new RuncardRawInfo("RC-001", null, null,
                 "TM-123", null, null, null, null, null);
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
 
         assertEquals(0, res.getResult());
         assertEquals("No settings => skip check", res.getDetail().get("msg"));
@@ -111,7 +117,7 @@ class RuleRCOwnerTest {
         when(dataLoaderService.getIssuingEngineerInfo(anyList()))
                 .thenReturn(List.of(eng));
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
 
         assertEquals(2, res.getResult());
         assertEquals("DEP-1/EMP-A/Alice", res.getDetail().get("issuingEngineer"));
@@ -140,7 +146,7 @@ class RuleRCOwnerTest {
         when(dataLoaderService.getIssuingEngineerInfo(anyList()))
                 .thenReturn(List.of(eng));
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
 
         assertEquals(1, res.getResult());
     }
@@ -161,21 +167,22 @@ class RuleRCOwnerTest {
         rc.setPartId("TM-123");
         rc.setIssuingEngineer("EMP-A/AliceId");              // only two '/'
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
 
         assertEquals(3, res.getResult());
         assertEquals("issuingEngineer format unexpected (empId not found) => skip",
                 res.getDetail().get("error"));
     }
+
     @Test
     void noIssuingEngineerInfo_shouldSkip() {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "divisions",   Collections.emptyList(),
+                "divisions", Collections.emptyList(),
                 "departments", Collections.emptyList(),
-                "sections",    Collections.emptyList(),
-                "employees",   Collections.emptyList()
+                "sections", Collections.emptyList(),
+                "employees", Collections.emptyList()
         ));
 
         RuncardRawInfo rc = new RuncardRawInfo();
@@ -186,7 +193,7 @@ class RuleRCOwnerTest {
         when(dataLoaderService.getIssuingEngineerInfo(anyList()))
                 .thenReturn(Collections.emptyList());
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
         assertEquals(3, res.getResult());
         assertEquals("No IssuingEngineerInfos data => skip",
                 res.getDetail().get("error"));
@@ -197,10 +204,10 @@ class RuleRCOwnerTest {
         Rule rule = new Rule();
         rule.setLotType(List.of("Prod"));
         rule.setSettings(Map.of(
-                "divisions",   Collections.emptyList(),
+                "divisions", Collections.emptyList(),
                 "departments", Collections.emptyList(),
-                "sections",    Collections.emptyList(),
-                "employees",   Collections.emptyList()
+                "sections", Collections.emptyList(),
+                "employees", Collections.emptyList()
         ));
 
         RuncardRawInfo rc = new RuncardRawInfo();
@@ -216,7 +223,7 @@ class RuleRCOwnerTest {
         when(dataLoaderService.getIssuingEngineerInfo(anyList()))
                 .thenReturn(List.of(other));
 
-        ResultInfo res = ruleRCOwner.check(COND, rc, rule);
+        ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
         assertEquals(3, res.getResult());
         assertEquals("No matching IssuingEngineerInfo data => skip",
                 res.getDetail().get("error"));
