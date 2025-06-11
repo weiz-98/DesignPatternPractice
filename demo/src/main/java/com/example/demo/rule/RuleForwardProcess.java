@@ -131,11 +131,11 @@ public class RuleForwardProcess implements IRuleCheck {
                     .map(fp -> fp.getRecipeId() == null ? "" : fp.getRecipeId())
                     .anyMatch(matcher::match);
 
-            if (!matched) {
-                return false; // 只要有一個 pattern 沒命中就 fail
+            if (matched) {
+                return true;   // 只要有一個 pattern 命中 → 整體 success
             }
         }
-        return true; // 全部 pattern 都命中
+        return false;
     }
 
     /**
@@ -194,11 +194,11 @@ public class RuleForwardProcess implements IRuleCheck {
                     .map(fp -> fp.getToolId() == null ? "" : fp.getToolId())
                     .anyMatch(matcher::match);
 
-            if (!matched) {
-                return false;   // 只要有一個 pattern 沒命中 → 整體 fail
+            if (matched) {
+                return true;   // 只要有一個 pattern 命中 → 整體 success
             }
         }
-        return true;            // 全部 pattern 都命中 → pass
+        return false;
     }
 
 }

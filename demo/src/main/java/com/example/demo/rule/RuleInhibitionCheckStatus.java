@@ -26,11 +26,6 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check start", runcardRawInfo.getRuncardId(), cond);
 
-        if (cond.contains("_M")) {
-            log.info("RuncardID: {} Condition: {} - This condition is multiple recipe data => skip", runcardRawInfo.getRuncardId(), cond);
-            return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 0, "msg", "Skip M-Condition", true);
-        }
-
         ResultInfo r;
         r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
@@ -44,8 +39,10 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         }
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus retrieved {} rows", runcardRawInfo.getRuncardId(), cond, list.size());
 
+        String baseCond = cond.contains("_M") ? cond.split("_M", 2)[0] : cond;
+
         InhibitionCheckStatus target = list.stream()
-                .filter(ics -> cond.equals(ics.getCondition()))
+                .filter(ics -> baseCond.equals(ics.getCondition()))
                 .findFirst()
                 .orElse(null);
 

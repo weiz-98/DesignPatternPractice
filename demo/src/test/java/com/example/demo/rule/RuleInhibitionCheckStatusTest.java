@@ -139,16 +139,15 @@ class RuleInhibitionCheckStatusTest {
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
 
-        when(dataLoaderService.getRecipeAndToolInfo(anyString()))
-                .thenReturn(Collections.emptyList());
+        when(dataLoaderService.getInhibitionCheckStatus(anyString()))
+                .thenReturn(List.of(new InhibitionCheckStatus("01", "Y")));
 
         ResultInfo info = ruleInhibitionCheckStatus.check(ctx("01_M01", rc), rule);
 
-        assertEquals(0, info.getResult());
-        assertEquals("Skip M-Condition", info.getDetail().get("msg"));
-        assertEquals(Boolean.TRUE, info.getDetail().get("isMCondition"));
+        assertEquals(1, info.getResult());
+        assertEquals(Boolean.TRUE, info.getDetail().get("inhibitionCheck"));
 
-        verify(dataLoaderService, never()).getInhibitionCheckStatus(anyString());
+        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
     }
 
     @Test

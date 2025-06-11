@@ -74,46 +74,8 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
 
         for (Map.Entry<String, List<List<String>>> entry : grouped.entrySet()) {
             String tool = entry.getKey();
-            List<List<String>> bracketExpansions = entry.getValue();  // AND
-
-            // 對這個 tool, 逐一 bracket => "AND"
-            boolean toolPass = true;
-            for (List<String> orChambers : bracketExpansions) {
-                // orChambers = e.g. ["E","F"]
-                // 需要檢查 => "OR" => 只要找到一個 chamber 在 checkBlueList pass 即可
-                boolean bracketOk = false;
-                if (orChambers.isEmpty()) {
-                    // 表示 {c} => "%%" or "no bracket"? => 只需檢查 tool only
-                    bracketOk = checkToolOnlyPass(tool, checkBlueList);
-                } else {
-                    // 只要 orChambers 中任意 chamber pass => bracketOk=true
-                    for (String chamber : orChambers) {
-                        if (chamber.equals("%%")) {
-                            if (checkToolOnlyPass(tool, checkBlueList)) {
-                                bracketOk = true;
-                                break;
-                            }
-                        } else {
-                            boolean found = checkBlueList.stream().anyMatch(blue ->
-                                    blue.getToolId().equals(tool)
-                                            && blue.getChamberId().equals("#" + chamber)
-                                            && "1".equals(blue.getReleaseFlag())
-                                            && "1".equals(blue.getEnableFlag())
-                            );
-                            if (found) {
-                                bracketOk = true;
-                                break;
-                            }
-                        }
-                    }
-                }
-                if (!bracketOk) {
-                    toolPass = false;
-                    break;
-                }
-            } // end for bracketExpansions
-
-            if (!toolPass) {
+            boolean toolOk = isToolPass(tool, entry.getValue(), checkBlueList);
+            if (!toolOk) {
                 pass = false;
                 failTools.add(tool);
             }
@@ -139,6 +101,48 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
                 .result(lamp)
                 .detail(detailMap)
                 .build();
+    }
+
+    private boolean isToolPass(String tool,
+                               List<List<String>> andBrackets,
+                               List<RecipeGroupCheckBlue> blueList) {
+
+        // 每個 bracket (AND) 都必須 true
+        for (List<String> orChambers : andBrackets) {
+            if (!isBracketPass(tool, orChambers, blueList)) {
+                return false;               // 任何一個 AND 失敗 → 整個 tool 失敗
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 判斷單一 bracket (OR) 是否通過
+     */
+    private boolean isBracketPass(String tool,
+                                  List<String> orChambers,
+                                  List<RecipeGroupCheckBlue> blueList) {
+
+        // 空 list 代表 {c} 或不限定 chamber ⇒ 只要 tool 本身 OK
+        if (orChambers.isEmpty()) {
+            return checkToolOnlyPass(tool, blueList);
+        }
+
+        // 只要 OR 清單裡任一 chamber 命中即可
+        for (String chamber : orChambers) {
+            if ("%%".equals(chamber)) {
+                if (checkToolOnlyPass(tool, blueList)) {
+                    return true;
+                }
+            } else if (blueList.stream().anyMatch(blue ->
+                    blue.getToolId().equals(tool) &&
+                            blue.getChamberId().equals("#" + chamber) &&
+                            "1".equals(blue.getReleaseFlag()) &&
+                            "1".equals(blue.getEnableFlag()))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**

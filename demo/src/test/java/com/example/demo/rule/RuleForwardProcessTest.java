@@ -157,7 +157,7 @@ class RuleForwardProcessTest {
 
         ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
-        assertEquals(3, info.getResult(), "找不到 recipeId= 'ABC' => fail =>3");
+        assertEquals(1, info.getResult(), "找不到 recipeId= 'ABC' => success =>1");
         verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 
@@ -182,7 +182,7 @@ class RuleForwardProcessTest {
 
         ResultInfo info = ruleForwardProcess.check(ctx("TEST_COND", rc), rule);
 
-        assertEquals(3, info.getResult(), "TOOL-2 不存在 => fail =>3");
+        assertEquals(1, info.getResult(), "TOOL-2 不存在 => success =>1");
         verify(dataLoaderService, times(1)).getForwardProcess(anyString());
     }
 
