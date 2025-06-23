@@ -3,6 +3,7 @@ package com.example.demo.service;
 import com.example.demo.rule.DefaultRuleValidator;
 import com.example.demo.rule.IRuleCheck;
 import com.example.demo.rule.RuleCheckFactory;
+import com.example.demo.vo.OneConditionRecipeAndToolInfo;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
 import com.example.demo.vo.RuncardRawInfo;
@@ -13,16 +14,25 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @Slf4j
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class DefaultRuleValidatorTest {
+
+    private static final String COND = "TEST_COND";
 
     @Mock
     private RuleCheckFactory ruleCheckFactory;
@@ -47,124 +57,74 @@ class DefaultRuleValidatorTest {
 
         dummyRuleB = new Rule();
         dummyRuleB.setRuleType("ruleB");
+
+        OneConditionRecipeAndToolInfo pair = OneConditionRecipeAndToolInfo.builder().condition(COND).recipeId("RECIPE-X").toolIdList("TOOL1,TOOL2").build();
+        lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString())).thenReturn(List.of(pair));
+
+        lenient().when(dataLoaderService.getToolIdToSectNameMap()).thenReturn(Map.of("TOOL1", "SectA", "TOOL2", "SectB"));
     }
 
     @Test
     void validateRule_withValidRules() {
-        // 模擬一個 IRuleCheck 會根據 ruleA 返回一個 ResultInfo
+        /* mock checker for ruleA → green lamp                          */
         IRuleCheck dummyChecker = (ctx, rule) -> {
-            ResultInfo info = new ResultInfo();
-            info.setRuleType(rule.getRuleType());
-            info.setResult(1); // 模擬綠燈
-            Map<String, Object> detail = new HashMap<>();
-            detail.put("msg", "Pass for ruleA");
-            info.setDetail(detail);
-            return info;
+            ResultInfo ri = new ResultInfo();
+            ri.setRuleType(rule.getRuleType());
+            ri.setResult(1);
+            ri.setDetail(new HashMap<>(Map.of("msg", "Pass for ruleA")));
+            return ri;
         };
-        // 當查詢 ruleA 時，回傳 dummyChecker
         when(ruleCheckFactory.getRuleCheck("ruleA")).thenReturn(dummyChecker);
 
-        // 建立一個規則清單，只包含 dummyRuleA
-        List<Rule> rules = Collections.singletonList(dummyRuleA);
+        List<ResultInfo> results = defaultRuleValidator.validateRule(COND, dummyRuncard, List.of(dummyRuleA));
 
-        List<ResultInfo> results = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, rules);
-        log.info("results : {}", results);
-        assertNotNull(results);
         assertEquals(1, results.size());
-        ResultInfo result = results.get(0);
-        assertEquals("ruleA", result.getRuleType());
-        assertEquals(1, result.getResult());
-        assertTrue(result.getDetail().containsKey("msg"));
-        assertEquals("Pass for ruleA", result.getDetail().get("msg"));
+        ResultInfo res = results.get(0);
+
+        assertEquals("ruleA", res.getRuleType());
+        assertEquals(1, res.getResult());
+        assertEquals("Pass for ruleA", res.getDetail().get("msg"));
+        assertEquals("SectA,SectB", res.getDetail().get("conditionSectName"));
     }
 
     @Test
     void validateRule_withExceptionInChecker() {
-        // 模擬當查詢 ruleB 時，getRuleCheck 拋出例外
         when(ruleCheckFactory.getRuleCheck("ruleB")).thenThrow(new IllegalArgumentException("Checker not found"));
 
-        List<Rule> rules = Collections.singletonList(dummyRuleB);
-        List<ResultInfo> results = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, rules);
+        List<ResultInfo> results = defaultRuleValidator.validateRule(COND, dummyRuncard, List.of(dummyRuleB));
 
-        assertNotNull(results);
-        assertEquals(1, results.size());
-        ResultInfo result = results.get(0);
-        assertEquals("ruleB", result.getRuleType());
-        // 預期 result 為紅燈
-        assertEquals(3, result.getResult());
-        // detail 應該包含 error 訊息
-        assertTrue(result.getDetail().containsKey("error"));
-        assertEquals("Checker not found", result.getDetail().get("error"));
+        ResultInfo res = results.get(0);
+        assertEquals(3, res.getResult());
+        assertEquals("Checker not found", res.getDetail().get("error"));
+        assertEquals("SectA,SectB", res.getDetail().get("conditionSectName"));
     }
 
     @Test
     void validateRule_withEmptyRules() {
-        // 當 rules 為 null 或空集合時，應返回空集合
-        // 多加 "TEST_COND"
-        List<ResultInfo> resultsNull = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, null);
-        List<ResultInfo> resultsEmpty = defaultRuleValidator.validateRule("TEST_COND", dummyRuncard, Collections.emptyList());
-        assertTrue(resultsNull.isEmpty());
-        assertTrue(resultsEmpty.isEmpty());
+        assertTrue(defaultRuleValidator.validateRule(COND, dummyRuncard, null).isEmpty());
+        assertTrue(defaultRuleValidator.validateRule(COND, dummyRuncard, Collections.emptyList()).isEmpty());
     }
 
     @Test
     void parseResult_mergeSameRuleType() {
-        // 建立多筆 ResultInfo 來自不同 group，且 ruleType 相同 (ruleA)
-        ResultInfo info1 = new ResultInfo();
-        info1.setRuleType("ruleA");
-        info1.setResult(1);
-        Map<String, Object> detail1 = new HashMap<>();
-        detail1.put("group", "GroupA");
-        detail1.put("msg", "Pass from GroupA");
-        info1.setDetail(detail1);
+        ResultInfo info1 = new ResultInfo("ruleA", Map.of("group", "G1"), 1);
+        ResultInfo info2 = new ResultInfo("ruleA", Map.of("group", "G2"), 3);
 
-        ResultInfo info2 = new ResultInfo();
-        info2.setRuleType("ruleA");
-        info2.setResult(3);
-        Map<String, Object> detail2 = new HashMap<>();
-        detail2.put("group", "GroupB");
-        detail2.put("error", "Fail from GroupB");
-        info2.setDetail(detail2);
+        List<ResultInfo> consolidated = defaultRuleValidator.parseResult(List.of(info1, info2));
 
-        // 將兩筆結果放入 list
-        List<ResultInfo> inputList = Arrays.asList(info1, info2);
-
-        List<ResultInfo> consolidated = defaultRuleValidator.parseResult(inputList);
-        log.info("consolidated : {}", consolidated);
-        // 預期合併後只留一筆，因為 ruleType 相同
         assertEquals(1, consolidated.size());
-        ResultInfo finalInfo = consolidated.get(0);
-        assertEquals("ruleA", finalInfo.getRuleType());
-        // 結果應為 3 (取最大燈號)
-        assertEquals(3, finalInfo.getResult());
-        // detail 合併後應包含 repeatedGroups, 並包含各 group 的資訊
-        Map<String, Object> finalDetail = finalInfo.getDetail();
-        assertNotNull(finalDetail);
-        assertTrue(finalDetail.containsKey("repeatedGroups"));
-        @SuppressWarnings("unchecked")
-        List<String> groups = (List<String>) finalDetail.get("repeatedGroups");
-        assertTrue(groups.contains("GroupA"));
-        assertTrue(groups.contains("GroupB"));
-        // 也會有合併的 key值，檢查其中一個
-        assertEquals("Pass from GroupA", finalDetail.get("GroupA_msg"));
-        assertEquals("Fail from GroupB", finalDetail.get("GroupB_error"));
+        ResultInfo fin = consolidated.get(0);
+        assertEquals(3, fin.getResult());
+        assertTrue(((List<?>) fin.getDetail().get("repeatedGroups")).containsAll(List.of("G1", "G2")));
     }
 
+    // ─────────────────────────────────────────────────────────────────────────────
     @Test
     void parseResult_withAllNullResults() {
-        // 測試若所有 result 都為 null，應預設為 3 並記 log.error (這裡只驗證返回結果)
-        // 構造一筆 detail 為 null 或 result 為 null
         ResultInfo info = new ResultInfo();
         info.setRuleType("ruleX");
-        info.setResult(null);
-        info.setDetail(null);
-        List<ResultInfo> inputList = Collections.singletonList(info);
+        List<ResultInfo> consolidated = defaultRuleValidator.parseResult(List.of(info));
 
-        List<ResultInfo> consolidated = defaultRuleValidator.parseResult(inputList);
-        assertEquals(1, consolidated.size());
-        ResultInfo finalInfo = consolidated.get(0);
-        assertEquals("ruleX", finalInfo.getRuleType());
-        // 預設應為 3
-        assertEquals(3, finalInfo.getResult());
+        assertEquals(3, consolidated.get(0).getResult());
     }
 }

@@ -22,6 +22,10 @@ public class DataLoaderService {
     private final RuncardInfoDao runcardInfoDao;
     private final RCOwnerDao rcOwnerDao;
 
+    public Map<String, String> getToolIdToSectNameMap() {
+        return Map.of("s", "s");
+    }
+
     // 取得 ForwardProcess 資料
     public List<ForwardProcess> getForwardProcess(String runcardId) {
         Optional<List<ForwardProcess>> opt = ruleDao.getForwardProcess();

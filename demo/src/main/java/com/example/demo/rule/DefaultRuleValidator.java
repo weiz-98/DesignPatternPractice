@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -28,34 +29,35 @@ public class DefaultRuleValidator implements IRuleValidator {
 
         List<ResultInfo> results = new ArrayList<>();
         for (Rule rule : rules) {
+            RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
+                    .stream()
+                    .filter(o -> cond.equals(o.getCondition()))
+                    .findFirst()
+                    .map(o -> RecipeToolPair.builder()
+                            .recipeId(o.getRecipeId())
+                            .toolIds(o.getToolIdList())
+                            .build())
+                    .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
+            String conditionSectName = buildConditionSectName(recipeToolPair.getToolIds());
+            ResultInfo info;
             try {
-                RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
-                        .stream()
-                        .filter(o -> cond.equals(o.getCondition()))
-                        .findFirst()
-                        .map(o -> RecipeToolPair.builder()
-                                .recipeId(o.getRecipeId())
-                                .toolIds(o.getToolIdList())
-                                .build())
-                        .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
-
-                RuleExecutionContext ruleExecutionContext = RuleExecutionContext.builder()
+                RuleExecutionContext ctx = RuleExecutionContext.builder()
                         .cond(cond)
                         .runcardRawInfo(runcardRawInfo)
                         .recipeToolPair(recipeToolPair)
                         .build();
 
-                IRuleCheck checker = ruleCheckFactory.getRuleCheck(rule.getRuleType());
-                ResultInfo info = checker.check(ruleExecutionContext, rule);
-                results.add(info);
+                info = ruleCheckFactory.getRuleCheck(rule.getRuleType())
+                        .check(ctx, rule);
             } catch (Exception ex) {
-                // 如果該 rule 找不到對應的 checker 或執行出錯 => 做個紅燈
-                ResultInfo errorInfo = new ResultInfo();
-                errorInfo.setRuleType(rule.getRuleType());
-                errorInfo.setResult(3);
-                errorInfo.setDetail(Collections.singletonMap("error", ex.getMessage()));
-                results.add(errorInfo);
+                info = new ResultInfo();
+                info.setRuleType(rule.getRuleType());
+                info.setResult(3);
+                info.setDetail(new HashMap<>(Map.of("error", ex.getMessage())));
             }
+            info.setDetail(Optional.ofNullable(info.getDetail()).orElseGet(HashMap::new));
+            info.getDetail().put("conditionSectName", conditionSectName);
+            results.add(info);
         }
         return results;
     }
@@ -164,5 +166,20 @@ public class DefaultRuleValidator implements IRuleValidator {
         }
         log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}", runcardId, condition, ruleType, groupNames, infosOfSameRule, maxResult);
     }
+
+    private String buildConditionSectName(String toolIdsStr) {
+        if (toolIdsStr == null || toolIdsStr.isBlank()) {
+            return "";
+        }
+        Map<String, String> map = dataLoaderService.getToolIdToSectNameMap();
+        return Arrays.stream(toolIdsStr.split(","))
+                .map(String::trim)
+                .filter(t -> !t.isEmpty())
+                .map(map::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.joining(","));
+    }
+
 }
 
