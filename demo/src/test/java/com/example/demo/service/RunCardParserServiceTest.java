@@ -8,14 +8,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class RunCardParserServiceTest {
 
     @InjectMocks
@@ -37,6 +41,28 @@ class RunCardParserServiceTest {
         // 建立 dummy RuncardRawInfo
         dummyRawInfo = new RuncardRawInfo();
         dummyRawInfo.setRuncardId("RC-001");
+        Map<String, String> sectMap = Map.of(
+                "JDTM10", "SectA",
+                "JDTM11", "SectA",
+                "JDTM20", "SectB"
+        );
+        lenient().when(dataLoaderService.getToolIdToSectNameMap())
+                .thenReturn(sectMap);
+
+        OneConditionRecipeAndToolInfo infoNoGroup = OneConditionRecipeAndToolInfo.builder()
+                .condition("COND_NO_GROUP")
+                .recipeId("REC-001")
+                .toolIdList("JDTM10,JDTM11")
+                .build();
+
+        OneConditionRecipeAndToolInfo infoWithGroup = OneConditionRecipeAndToolInfo.builder()
+                .condition("COND_WITH_GROUP")
+                .recipeId("REC-002")
+                .toolIdList("JDTM20")
+                .build();
+
+        lenient().when(dataLoaderService.getRecipeAndToolInfo("RC-001"))
+                .thenReturn(List.of(infoNoGroup, infoWithGroup));
 
         // Condition 1: 無 group mapping
         conditionNoGroup = new OneConditionToolRuleMappingInfo();

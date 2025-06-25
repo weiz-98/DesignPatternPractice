@@ -1,5 +1,6 @@
 package com.example.demo.utils;
 
+import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.RecipeToolPair;
 import com.example.demo.vo.ResultInfo;
 import com.example.demo.vo.Rule;
@@ -7,6 +8,7 @@ import com.example.demo.vo.RuncardRawInfo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Slf4j
 public class RuleUtil {
@@ -130,41 +132,6 @@ public class RuleUtil {
         return Collections.emptyList();
     }
 
-    /**
-     * 若輸入是 List<?>，且裡面每個元素都是 Map<String,String>，則將它們合併成一個大 Map，回傳
-     * 若輸入直接就是 Map<String,String>，則直接轉型
-     */
-    @SuppressWarnings("unchecked")
-    public static Map<String, String> parseStringMap(Object obj) {
-        // 1) 若本來就是 Map => 直接轉
-        if (obj instanceof Map) {
-            try {
-                return (Map<String, String>) obj;
-            } catch (ClassCastException ex) {
-                log.warn("[parseStringMap] cast fail. obj={}", obj, ex);
-                return Collections.emptyMap();
-            }
-        }
-
-        if (obj instanceof List<?> lst) {
-            Map<String, String> combined = new LinkedHashMap<>();
-            for (Object item : lst) {
-                if (item instanceof Map) {
-                    try {
-                        Map<String, String> mapItem = (Map<String, String>) item;
-                        combined.putAll(mapItem);
-                    } catch (ClassCastException ex) {
-                        log.warn("[parseStringMap] list item cast fail, item={}", item, ex);
-                    }
-                } else {
-                    log.warn("[parseStringMap] list item is not a Map, item={}", item);
-                }
-            }
-            return combined;
-        }
-        return Collections.emptyMap();
-    }
-
     public static ResultInfo buildSkipInfo(String ruleType,
                                            RuncardRawInfo rc,
                                            String cond,
@@ -196,4 +163,42 @@ public class RuleUtil {
                 .build();
     }
 
+    public static String buildConditionSectName(String toolIdsStr,
+                                                DataLoaderService dataLoaderService) {
+
+        if (toolIdsStr == null || toolIdsStr.isBlank()) {
+            return "";
+        }
+
+        Map<String, String> sectMap = dataLoaderService.getToolIdToSectNameMap();
+        if (sectMap == null || sectMap.isEmpty()) {
+            return "";
+        }
+
+        return Arrays.stream(toolIdsStr.split(","))
+                .map(String::trim)
+                .filter(t -> !t.isEmpty())
+                .map(sectMap::get)
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.joining(","));
+    }
+
+    public static RecipeToolPair findRecipeToolPair(DataLoaderService dataLoaderService,
+                                                    String runcardId,
+                                                    String condition) {
+
+        return dataLoaderService.getRecipeAndToolInfo(runcardId)
+                .stream()
+                .filter(o -> condition.equals(o.getCondition()))
+                .findFirst()
+                .map(o -> RecipeToolPair.builder()
+                        .recipeId(o.getRecipeId())
+                        .toolIds(o.getToolIdList())
+                        .build())
+                .orElseGet(() -> RecipeToolPair.builder()
+                        .recipeId("")
+                        .toolIds("")
+                        .build());
+    }
 }

@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.rule.DefaultRuleValidator;
+import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -116,26 +117,22 @@ public class RunCardParserService {
 
     private ResultInfo buildNoGroupResultInfo(RuncardRawInfo rc, String cond) {
 
-        String recipeId = dataLoaderService.getRecipeAndToolInfo(rc.getRuncardId())
-                .stream()
-                .filter(o -> cond.equals(o.getCondition()))
-                .map(OneConditionRecipeAndToolInfo::getRecipeId)
-                .findFirst()
-                .orElse("");
+        RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(dataLoaderService, rc.getRuncardId(), cond);
+        String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), dataLoaderService);
 
         Map<String, Object> detail = new HashMap<>();
         detail.put("msg", "No group matched for this condition");
-        detail.put("recipeId", recipeId);
+        detail.put("recipeId", recipeToolPair.getRecipeId());
         detail.put("runcardId", rc.getRuncardId());
         detail.put("condition", cond);
+        detail.put("conditionSectName", conditionSectName);
 
         ResultInfo resultInfo = new ResultInfo();
         resultInfo.setRuleType("no-group");
         resultInfo.setResult(0);
         resultInfo.setDetail(detail);
 
-        log.info("RuncardID: {} Condition: {} - No group mapping found, recipeId='{}'",
-                rc.getRuncardId(), cond, recipeId);
+        log.info("RuncardID: {} Condition: {} - No group mapping found, recipeId='{}' , conditionSectName='{}'", rc.getRuncardId(), cond, recipeToolPair.getRecipeId(), conditionSectName);
         return resultInfo;
     }
 }

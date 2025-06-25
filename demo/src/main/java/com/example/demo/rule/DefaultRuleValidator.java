@@ -1,13 +1,13 @@
 package com.example.demo.rule;
 
 import com.example.demo.service.DataLoaderService;
+import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Component
@@ -29,16 +29,8 @@ public class DefaultRuleValidator implements IRuleValidator {
 
         List<ResultInfo> results = new ArrayList<>();
         for (Rule rule : rules) {
-            RecipeToolPair recipeToolPair = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId())
-                    .stream()
-                    .filter(o -> cond.equals(o.getCondition()))
-                    .findFirst()
-                    .map(o -> RecipeToolPair.builder()
-                            .recipeId(o.getRecipeId())
-                            .toolIds(o.getToolIdList())
-                            .build())
-                    .orElseGet(() -> RecipeToolPair.builder().recipeId("").toolIds("").build());
-            String conditionSectName = buildConditionSectName(recipeToolPair.getToolIds());
+            RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(dataLoaderService, runcardRawInfo.getRuncardId(), cond);
+            String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), dataLoaderService);
             ResultInfo info;
             try {
                 RuleExecutionContext ctx = RuleExecutionContext.builder()
@@ -166,20 +158,5 @@ public class DefaultRuleValidator implements IRuleValidator {
         }
         log.info("RuncardID: {} Condition: {} - Consolidating ruleType '{}' from groups {} with individual results: {}. Final result: {}", runcardId, condition, ruleType, groupNames, infosOfSameRule, maxResult);
     }
-
-    private String buildConditionSectName(String toolIdsStr) {
-        if (toolIdsStr == null || toolIdsStr.isBlank()) {
-            return "";
-        }
-        Map<String, String> map = dataLoaderService.getToolIdToSectNameMap();
-        return Arrays.stream(toolIdsStr.split(","))
-                .map(String::trim)
-                .filter(t -> !t.isEmpty())
-                .map(map::get)
-                .filter(Objects::nonNull)
-                .distinct()
-                .collect(Collectors.joining(","));
-    }
-
 }
 
