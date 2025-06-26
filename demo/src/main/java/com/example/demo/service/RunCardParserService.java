@@ -15,12 +15,11 @@ import java.util.*;
 public class RunCardParserService {
 
     private final DefaultRuleValidator ruleValidator;
-    private final BatchCache cache;
 
     /**
      * 解析一張 runcard 下所有 condition 的判斷結果
      */
-    public List<OneConditionToolRuleGroupResult> validateMappingRules(RuncardMappingInfo runcardMappingInfo) {
+    public List<OneConditionToolRuleGroupResult> validateMappingRules(RuncardMappingInfo runcardMappingInfo, BatchCache cache) {
 
         List<OneConditionToolRuleGroupResult> emptyCheckResult = checkBasicParams(runcardMappingInfo);
         if (emptyCheckResult != null) {
@@ -40,8 +39,7 @@ public class RunCardParserService {
 
             //  若沒有 mapping 到任何 group -> 也要產生一筆記錄，表示該 condition 沒有對應到 group
             if (groupRulesMap == null || groupRulesMap.isEmpty()) {
-                oneConditionAllResultInfos.add(
-                        buildNoGroupResultInfo(runcardRawInfo, oneCondMappingInfo.getCondition()));
+                oneConditionAllResultInfos.add(buildNoGroupResultInfo(runcardRawInfo, oneCondMappingInfo.getCondition(), cache));
             } else {
                 // 若有 group => 逐一 group 去做 validateRule
                 for (Map.Entry<String, List<Rule>> entry : groupRulesMap.entrySet()) {
@@ -52,7 +50,7 @@ public class RunCardParserService {
                             runcardRawInfo.getRuncardId(), oneCondMappingInfo.getCondition(), groupName, rules);
 
                     // 呼叫 DefaultRuleValidator.validateRule 去執行該 condition 下 同 rule 的檢查
-                    List<ResultInfo> partialResults = ruleValidator.validateRule(oneCondMappingInfo.getCondition(), runcardRawInfo, rules);
+                    List<ResultInfo> partialResults = ruleValidator.validateRule(oneCondMappingInfo.getCondition(), runcardRawInfo, rules, cache);
 
                     // 在 parseResult 階段會把這些 groupName 合併成 "repeatedGroups",
                     // 並在 detail 裡分別以 "GroupA_xxx", "GroupB_xxx" 形式呈現
@@ -115,7 +113,7 @@ public class RunCardParserService {
         return null;
     }
 
-    private ResultInfo buildNoGroupResultInfo(RuncardRawInfo rc, String cond) {
+    private ResultInfo buildNoGroupResultInfo(RuncardRawInfo rc, String cond, BatchCache cache) {
 
         RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(cache, rc.getRuncardId(), cond);
         String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), cache);

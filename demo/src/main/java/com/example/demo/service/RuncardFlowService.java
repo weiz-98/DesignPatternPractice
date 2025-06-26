@@ -25,6 +25,7 @@ public class RuncardFlowService {
         List<String> sectionIds = runcardParsingRequest.getSectionIds();
         LocalDateTime startTime = runcardParsingRequest.getStartTime();
         LocalDateTime endTime = runcardParsingRequest.getEndTime();
+        BatchCache cache = cacheProvider.getObject();
 
         List<ToolRuleGroup> toolRuleGroups = dataLoaderService.getToolRuleGroups(sectionIds);
         log.info("Retrieved {} ToolRuleGroups for sections : {} between {} and {}", toolRuleGroups.size(), sectionIds, startTime, endTime);
@@ -40,18 +41,18 @@ public class RuncardFlowService {
         log.info("Retrieved {} Runcard Raw Data for sections : {} between {} and {}", runcardRawInfos.size(), sectionIds, startTime, endTime);
 
         // 建立該 module 下所有 Runcard mapping 到的所有 rules
-        List<RuncardMappingInfo> oneModuleMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups);
+        List<RuncardMappingInfo> oneModuleMappingInfos = getConditionMappingInfos(runcardRawInfos, toolRuleGroups, cache);
 
-        List<OneRuncardRuleResult> oneModuleRuleResult = processMappingInfos(oneModuleMappingInfos);
+        List<OneRuncardRuleResult> oneModuleRuleResult = processMappingInfos(oneModuleMappingInfos, cache);
 
         List<RuncardResult> runcardResults = saveOneModuleRuleResult(oneModuleRuleResult);
         return buildParsingResults(runcardRawInfos, runcardResults);
 
     }
 
-    public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
+    public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups, BatchCache cache) {
         List<RuncardMappingInfo> oneModuleMappingInfos = new ArrayList<>();
-        BatchCache cache = cacheProvider.getObject();
+
         for (RuncardRawInfo runcardRawInfo : runcardRawInfos) {
             List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos = cache.getRecipeAndToolInfo(runcardRawInfo.getRuncardId());
 
@@ -62,11 +63,11 @@ public class RuncardFlowService {
     }
 
 
-    public List<OneRuncardRuleResult> processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos) {
+    public List<OneRuncardRuleResult> processMappingInfos(List<RuncardMappingInfo> oneModuleMappingInfos, BatchCache cache) {
         List<OneRuncardRuleResult> oneModuleRuleResult = new ArrayList<>();
         // 將每一張 runcard 的 runcardMappingInfo 根據不同的 rule 去做驗證
         oneModuleMappingInfos.forEach(oneRuncardMappingInfo -> {
-            List<OneConditionToolRuleGroupResult> oneRuncardRuleResults = runCardParserService.validateMappingRules(oneRuncardMappingInfo);
+            List<OneConditionToolRuleGroupResult> oneRuncardRuleResults = runCardParserService.validateMappingRules(oneRuncardMappingInfo, cache);
 
             RuncardRawInfo runcardRawInfo = oneRuncardMappingInfo.getRuncardRawInfo();
             log.info("RuncardID: {} validation completed. Result size : {} ",

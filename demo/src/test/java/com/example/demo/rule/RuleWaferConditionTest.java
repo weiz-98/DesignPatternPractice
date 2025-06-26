@@ -2,7 +2,6 @@ package com.example.demo.rule;
 
 import com.example.demo.po.WaferCondition;
 import com.example.demo.service.BatchCache;
-import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,6 +29,7 @@ class RuleWaferConditionTest {
                 .cond(cond)
                 .runcardRawInfo(rc)
                 .recipeToolPair(emptyPair)
+                .cache(cache)
                 .build();
     }
 

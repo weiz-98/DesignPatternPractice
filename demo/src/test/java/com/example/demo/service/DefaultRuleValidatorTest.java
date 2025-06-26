@@ -22,7 +22,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.when;
@@ -76,7 +77,7 @@ class DefaultRuleValidatorTest {
         };
         when(ruleCheckFactory.getRuleCheck("ruleA")).thenReturn(dummyChecker);
 
-        List<ResultInfo> results = defaultRuleValidator.validateRule(COND, dummyRuncard, List.of(dummyRuleA));
+        List<ResultInfo> results = defaultRuleValidator.validateRule(COND, dummyRuncard, List.of(dummyRuleA),cache);
 
         assertEquals(1, results.size());
         ResultInfo res = results.get(0);
@@ -91,7 +92,7 @@ class DefaultRuleValidatorTest {
     void validateRule_withExceptionInChecker() {
         when(ruleCheckFactory.getRuleCheck("ruleB")).thenThrow(new IllegalArgumentException("Checker not found"));
 
-        List<ResultInfo> results = defaultRuleValidator.validateRule(COND, dummyRuncard, List.of(dummyRuleB));
+        List<ResultInfo> results = defaultRuleValidator.validateRule(COND, dummyRuncard, List.of(dummyRuleB), cache);
 
         ResultInfo res = results.get(0);
         assertEquals(3, res.getResult());
@@ -101,8 +102,8 @@ class DefaultRuleValidatorTest {
 
     @Test
     void validateRule_withEmptyRules() {
-        assertTrue(defaultRuleValidator.validateRule(COND, dummyRuncard, null).isEmpty());
-        assertTrue(defaultRuleValidator.validateRule(COND, dummyRuncard, Collections.emptyList()).isEmpty());
+        assertTrue(defaultRuleValidator.validateRule(COND, dummyRuncard, null,cache).isEmpty());
+        assertTrue(defaultRuleValidator.validateRule(COND, dummyRuncard, Collections.emptyList(),cache).isEmpty());
     }
 
     @Test

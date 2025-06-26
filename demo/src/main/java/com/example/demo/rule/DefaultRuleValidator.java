@@ -1,7 +1,6 @@
 package com.example.demo.rule;
 
 import com.example.demo.service.BatchCache;
-import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -16,13 +15,12 @@ import java.util.*;
 public class DefaultRuleValidator implements IRuleValidator {
 
     private final RuleCheckFactory ruleCheckFactory;
-    private final BatchCache cache;
 
     /**
      * 逐一將每個 group 所 mapping 到的 rule 用 RuleCheckFactory 取得對應 checker 來執行檢查
      */
     @Override
-    public List<ResultInfo> validateRule(String cond, RuncardRawInfo runcardRawInfo, List<Rule> rules) {
+    public List<ResultInfo> validateRule(String cond, RuncardRawInfo runcardRawInfo, List<Rule> rules, BatchCache cache) {
         if (rules == null || rules.isEmpty()) {
             log.error("Runcard ID : {} has no rules to validate", (runcardRawInfo != null ? runcardRawInfo.getRuncardId() : "UNKNOWN"));
             return Collections.emptyList();
@@ -38,6 +36,7 @@ public class DefaultRuleValidator implements IRuleValidator {
                         .cond(cond)
                         .runcardRawInfo(runcardRawInfo)
                         .recipeToolPair(recipeToolPair)
+                        .cache(cache)
                         .build();
 
                 info = ruleCheckFactory.getRuleCheck(rule.getRuleType())

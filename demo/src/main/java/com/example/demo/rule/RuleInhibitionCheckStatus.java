@@ -2,7 +2,6 @@ package com.example.demo.rule;
 
 import com.example.demo.po.InhibitionCheckStatus;
 import com.example.demo.service.BatchCache;
-import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -18,10 +17,10 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RuleInhibitionCheckStatus implements IRuleCheck {
 
-    private final BatchCache cache;
 
     @Override
     public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
+        BatchCache cache = ruleExecutionContext.getCache();
         RuncardRawInfo runcardRawInfo = ruleExecutionContext.getRuncardRawInfo();
         String cond = ruleExecutionContext.getCond();
         RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();

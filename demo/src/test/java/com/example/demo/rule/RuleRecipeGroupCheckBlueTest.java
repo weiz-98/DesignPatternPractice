@@ -2,7 +2,6 @@ package com.example.demo.rule;
 
 import com.example.demo.po.RecipeGroupCheckBlue;
 import com.example.demo.service.BatchCache;
-import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.*;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.BeforeEach;
@@ -47,6 +46,7 @@ class RuleRecipeGroupCheckBlueTest {
                                 .recipeId(recipeId)
                                 .toolIds(toolIds)
                                 .build())
+                .cache(cache)
                 .build();
     }
 

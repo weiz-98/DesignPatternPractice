@@ -33,14 +33,13 @@ class RuleForwardProcessTest {
                 .cond(cond)
                 .runcardRawInfo(rc)
                 .recipeToolPair(emptyPair)
+                .cache(cache)
                 .build();
     }
 
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        lenient().when(cache.getRecipeAndToolInfo(anyString()))
-                .thenReturn(Collections.emptyList());
     }
 
     @Test

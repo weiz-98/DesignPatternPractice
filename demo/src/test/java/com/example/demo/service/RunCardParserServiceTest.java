@@ -104,11 +104,11 @@ class RunCardParserServiceTest {
         detail.put("msg", "Pass from GroupA");
         dummyResult.setDetail(detail);
 
-        when(ruleValidator.validateRule(eq("COND_WITH_GROUP"), eq(dummyRawInfo), anyList()))
+        when(ruleValidator.validateRule(eq("COND_WITH_GROUP"), eq(dummyRawInfo), anyList(), same(cache)))
                 .thenReturn(Collections.singletonList(dummyResult));
 
         // 呼叫被測方法
-        List<OneConditionToolRuleGroupResult> results = runCardParserService.validateMappingRules(mappingInfo);
+        List<OneConditionToolRuleGroupResult> results = runCardParserService.validateMappingRules(mappingInfo, cache);
 
         // 期望有 2 筆結果 (一個對應 conditionNoGroup、一個對應 conditionWithGroup)
         assertEquals(2, results.size());
@@ -146,19 +146,19 @@ class RunCardParserServiceTest {
     @Test
     void validateMappingRules_BasicParams() {
         // 測試 mappingInfo 為 null
-        assertTrue(runCardParserService.validateMappingRules(null).isEmpty());
+        assertTrue(runCardParserService.validateMappingRules(null, cache).isEmpty());
 
         // 測試 mappingInfo 的 condition list 為空
         RuncardMappingInfo emptyMapping = new RuncardMappingInfo();
         emptyMapping.setRuncardRawInfo(dummyRawInfo);
         emptyMapping.setOneConditionToolRuleMappingInfos(Collections.emptyList());
-        assertTrue(runCardParserService.validateMappingRules(emptyMapping).isEmpty());
+        assertTrue(runCardParserService.validateMappingRules(emptyMapping, cache).isEmpty());
 
         // 測試當 runcardRawInfo 為 null
         RuncardMappingInfo mappingWithNullRaw = new RuncardMappingInfo();
         mappingWithNullRaw.setRuncardRawInfo(null);
         mappingWithNullRaw.setOneConditionToolRuleMappingInfos(Collections.singletonList(conditionNoGroup));
-        assertTrue(runCardParserService.validateMappingRules(mappingWithNullRaw).isEmpty());
+        assertTrue(runCardParserService.validateMappingRules(mappingWithNullRaw, cache).isEmpty());
 
         // 測試當 runcardRawInfo.runcardId 為 null
         RuncardRawInfo unknownRaw = new RuncardRawInfo();
@@ -166,7 +166,7 @@ class RunCardParserServiceTest {
         RuncardMappingInfo mappingWithUnknownId = new RuncardMappingInfo();
         mappingWithUnknownId.setRuncardRawInfo(unknownRaw);
         mappingWithUnknownId.setOneConditionToolRuleMappingInfos(Collections.singletonList(conditionNoGroup));
-        assertTrue(runCardParserService.validateMappingRules(mappingWithUnknownId).isEmpty());
+        assertTrue(runCardParserService.validateMappingRules(mappingWithUnknownId, cache).isEmpty());
     }
 
     @Test
@@ -219,15 +219,15 @@ class RunCardParserServiceTest {
         // 當呼叫 validateRule("COND1", dummyRuncard, [ruleA]) => 回傳 dummyResultA
         when(ruleValidator.validateRule(eq("COND1"), eq(dummyRawInfo), argThat(rules ->
                 rules != null && !rules.isEmpty() && "ruleA".equals(rules.get(0).getRuleType())
-        ))).thenReturn(Collections.singletonList(dummyResultA));
+        ), same(cache))).thenReturn(Collections.singletonList(dummyResultA));
 
         // 當呼叫 validateRule("COND1", dummyRawInfo, [ruleB]) => 回傳 dummyResultB
         when(ruleValidator.validateRule(eq("COND1"), eq(dummyRawInfo), argThat(rules ->
                 rules != null && !rules.isEmpty() && "ruleB".equals(rules.get(0).getRuleType())
-        ))).thenReturn(Collections.singletonList(dummyResultB));
+        ), same(cache))).thenReturn(Collections.singletonList(dummyResultB));
 
         // 呼叫被測方法
-        List<OneConditionToolRuleGroupResult> results = runCardParserService.validateMappingRules(duplicateMappingInfo);
+        List<OneConditionToolRuleGroupResult> results = runCardParserService.validateMappingRules(duplicateMappingInfo, cache);
 
         // 預期結果：由於有兩筆 mapping info，所以結果 List 大小為 2
         assertEquals(2, results.size());

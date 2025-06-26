@@ -31,6 +31,7 @@ class RuleInhibitionCheckStatusTest {
                 .cond(cond)
                 .runcardRawInfo(rc)
                 .recipeToolPair(emptyPair)
+                .cache(cache)
                 .build();
     }
 
