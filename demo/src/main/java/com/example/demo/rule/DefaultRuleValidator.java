@@ -1,5 +1,6 @@
 package com.example.demo.rule;
 
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
@@ -15,7 +16,7 @@ import java.util.*;
 public class DefaultRuleValidator implements IRuleValidator {
 
     private final RuleCheckFactory ruleCheckFactory;
-    private final DataLoaderService dataLoaderService;
+    private final BatchCache cache;
 
     /**
      * 逐一將每個 group 所 mapping 到的 rule 用 RuleCheckFactory 取得對應 checker 來執行檢查
@@ -29,8 +30,8 @@ public class DefaultRuleValidator implements IRuleValidator {
 
         List<ResultInfo> results = new ArrayList<>();
         for (Rule rule : rules) {
-            RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(dataLoaderService, runcardRawInfo.getRuncardId(), cond);
-            String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), dataLoaderService);
+            RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(cache, runcardRawInfo.getRuncardId(), cond);
+            String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), cache);
             ResultInfo info;
             try {
                 RuleExecutionContext ctx = RuleExecutionContext.builder()

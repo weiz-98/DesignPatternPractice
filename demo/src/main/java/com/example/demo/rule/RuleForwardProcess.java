@@ -1,6 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.po.ForwardProcess;
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
@@ -19,7 +20,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class RuleForwardProcess implements IRuleCheck {
 
-    private final DataLoaderService dataLoaderService;
+    private final BatchCache cache;
 
     @Override
     public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
@@ -45,7 +46,7 @@ public class RuleForwardProcess implements IRuleCheck {
 
         log.info("RuncardID: {} Condition: {} - ForwardProcess configured => forwardSteps={}, includeMeasurement={}, recipeIds={}, toolIds={}", runcardRawInfo.getRuncardId(), cond, forwardSteps, includeMeasurement, recipeIds, toolIds);
 
-        List<ForwardProcess> allForward = dataLoaderService.getForwardProcess(runcardRawInfo.getRuncardId());
+        List<ForwardProcess> allForward = cache.getForwardProcess(runcardRawInfo.getRuncardId());
         if (allForward.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No ForwardProcess data => skip", runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 3, "error", "No ForwardProcess data => skip", false);

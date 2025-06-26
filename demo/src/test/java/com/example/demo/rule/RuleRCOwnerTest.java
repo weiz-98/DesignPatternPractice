@@ -1,6 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.po.IssuingEngineerInfo;
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +27,7 @@ class RuleRCOwnerTest {
     private static final String COND = "TEST_COND";
 
     @Mock
-    private DataLoaderService dataLoaderService;
+    private BatchCache cache;
 
     @InjectMocks
     private RuleRCOwner ruleRCOwner;
@@ -47,7 +48,7 @@ class RuleRCOwnerTest {
                 .recipeId("RECIPE-AAA")
                 .toolIdList("TOOL1,TOOL2")
                 .build();
-        lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString()))
+        lenient().when(cache.getRecipeAndToolInfo(anyString()))
                 .thenReturn(List.of(info));
     }
 
@@ -114,7 +115,7 @@ class RuleRCOwnerTest {
                 .departmentId("DEP-1").departmentName("DepName")
                 .sectionId("SEC-1").sectionName("SecName")
                 .build();
-        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+        when(cache.getIssuingEngineerInfo(anyList()))
                 .thenReturn(List.of(eng));
 
         ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
@@ -143,7 +144,7 @@ class RuleRCOwnerTest {
                 .engineerId("EMP-A").engineerName("Alice")
                 .divisionId("DIV-1").departmentId("DEP-1").sectionId("SEC-1")
                 .build();
-        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+        when(cache.getIssuingEngineerInfo(anyList()))
                 .thenReturn(List.of(eng));
 
         ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
@@ -190,7 +191,7 @@ class RuleRCOwnerTest {
         rc.setPartId("TM-123");
         rc.setIssuingEngineer("DEP-A/EMP-A/Alice");      // empId = EMP-A
 
-        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+        when(cache.getIssuingEngineerInfo(anyList()))
                 .thenReturn(Collections.emptyList());
 
         ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);
@@ -220,7 +221,7 @@ class RuleRCOwnerTest {
                 .engineerId("EMP-B").engineerName("Bob")
                 .divisionId("DIV-X").departmentId("DEP-X").sectionId("SEC-X")
                 .build();
-        when(dataLoaderService.getIssuingEngineerInfo(anyList()))
+        when(cache.getIssuingEngineerInfo(anyList()))
                 .thenReturn(List.of(other));
 
         ResultInfo res = ruleRCOwner.check(ctx(COND, rc), rule);

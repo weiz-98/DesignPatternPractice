@@ -15,7 +15,7 @@ import java.util.*;
 public class RunCardParserService {
 
     private final DefaultRuleValidator ruleValidator;
-    private final DataLoaderService dataLoaderService;
+    private final BatchCache cache;
 
     /**
      * 解析一張 runcard 下所有 condition 的判斷結果
@@ -117,8 +117,8 @@ public class RunCardParserService {
 
     private ResultInfo buildNoGroupResultInfo(RuncardRawInfo rc, String cond) {
 
-        RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(dataLoaderService, rc.getRuncardId(), cond);
-        String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), dataLoaderService);
+        RecipeToolPair recipeToolPair = RuleUtil.findRecipeToolPair(cache, rc.getRuncardId(), cond);
+        String conditionSectName = RuleUtil.buildConditionSectName(recipeToolPair.getToolIds(), cache);
 
         Map<String, Object> detail = new HashMap<>();
         detail.put("msg", "No group matched for this condition");

@@ -1,6 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.po.WaferCondition;
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
@@ -16,7 +17,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RuleWaferCondition implements IRuleCheck {
 
-    private final DataLoaderService dataLoaderService;
+    private final BatchCache cache;
 
     @Override
     public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
@@ -31,7 +32,7 @@ public class RuleWaferCondition implements IRuleCheck {
         r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
 
-        WaferCondition wc = dataLoaderService.getWaferCondition(runcardRawInfo.getRuncardId());
+        WaferCondition wc = cache.getWaferCondition(runcardRawInfo.getRuncardId());
         if (wc == null) {
             log.info("RuncardID: {} Condition: {} - No WaferCondition data => skip", runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 3, "error", "No WaferCondition data => skip", false);

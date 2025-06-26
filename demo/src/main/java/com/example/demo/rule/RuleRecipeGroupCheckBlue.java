@@ -1,6 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.po.RecipeGroupCheckBlue;
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.utils.ToolChamberUtil;
@@ -19,7 +20,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RuleRecipeGroupCheckBlue implements IRuleCheck {
 
-    private final DataLoaderService dataLoaderService;
+    private final BatchCache cache;
 
     @Override
     public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
@@ -35,7 +36,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
         if (r != null) return r;
 
         List<RecipeGroupAndTool> groupsAndToolInfos =
-                dataLoaderService.getRecipeGroupAndTool(runcardRawInfo.getRuncardId());
+                cache.getRecipeGroupAndTool(runcardRawInfo.getRuncardId());
         // 由於遇到 multiple recipe data 時並沒有 recipe group，需參照原 condition 的 recipe group
         List<RecipeGroupAndTool> filteredGroups = groupsAndToolInfos.stream()
                 .filter(rgt -> {
@@ -62,7 +63,7 @@ public class RuleRecipeGroupCheckBlue implements IRuleCheck {
 
         // 5) 取得 RecipeGroupCheckBlue
         List<RecipeGroupCheckBlue> checkBlueList =
-                dataLoaderService.getRecipeGroupCheckBlue(recipeGroupId, toolIds);
+                cache.getRecipeGroupCheckBlue(recipeGroupId, toolIds);
         log.info("RuncardID: {} Condition: {} - RecipeGroupCheckBlue retrieved {} for recipeGroupId: {} and toolIds: {}", runcardRawInfo.getRuncardId(), cond, checkBlueList.size(), recipeGroupId, toolIds);
 
 

@@ -4,6 +4,7 @@ import com.example.demo.po.ArrivalStatus;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,6 +19,7 @@ public class RuncardFlowService {
     private final DataLoaderService dataLoaderService;
     private final RuncardHandlerService runcardHandlerService;
     private final RunCardParserService runCardParserService;
+    private final ObjectProvider<BatchCache> cacheProvider;
 
     public List<RuncardParsingResult> processRuncardBatch(RuncardParsingRequest runcardParsingRequest) {
         List<String> sectionIds = runcardParsingRequest.getSectionIds();
@@ -49,8 +51,9 @@ public class RuncardFlowService {
 
     public List<RuncardMappingInfo> getConditionMappingInfos(List<RuncardRawInfo> runcardRawInfos, List<ToolRuleGroup> toolRuleGroups) {
         List<RuncardMappingInfo> oneModuleMappingInfos = new ArrayList<>();
+        BatchCache cache = cacheProvider.getObject();
         for (RuncardRawInfo runcardRawInfo : runcardRawInfos) {
-            List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos = dataLoaderService.getRecipeAndToolInfo(runcardRawInfo.getRuncardId());
+            List<OneConditionRecipeAndToolInfo> oneRuncardRecipeAndToolInfos = cache.getRecipeAndToolInfo(runcardRawInfo.getRuncardId());
 
             RuncardMappingInfo oneRuncardConditionMappingInfo = runcardHandlerService.buildRuncardMappingInfo(runcardRawInfo, oneRuncardRecipeAndToolInfos, toolRuleGroups);
             oneModuleMappingInfos.add(oneRuncardConditionMappingInfo);

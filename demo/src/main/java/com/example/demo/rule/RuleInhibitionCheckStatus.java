@@ -1,6 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.po.InhibitionCheckStatus;
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
@@ -17,7 +18,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class RuleInhibitionCheckStatus implements IRuleCheck {
 
-    private final DataLoaderService dataLoaderService;
+    private final BatchCache cache;
 
     @Override
     public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
@@ -32,7 +33,7 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
         if (r != null) return r;
 
-        List<InhibitionCheckStatus> list = dataLoaderService.getInhibitionCheckStatus(runcardRawInfo.getRuncardId());
+        List<InhibitionCheckStatus> list = cache.getInhibitionCheckStatus(runcardRawInfo.getRuncardId());
         if (list.isEmpty()) {
             log.info("RuncardID: {} Condition: {} - No InhibitionCheckStatus data => skip", runcardRawInfo.getRuncardId(), cond);
             return RuleUtil.buildSkipInfo(rule.getRuleType(), runcardRawInfo, cond, rule, recipeToolPair, 3, "error", "No InhibitionCheckStatus data => skip", false);

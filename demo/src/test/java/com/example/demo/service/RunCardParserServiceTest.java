@@ -29,7 +29,7 @@ class RunCardParserServiceTest {
     private DefaultRuleValidator ruleValidator;
 
     @Mock
-    private DataLoaderService dataLoaderService;
+    private BatchCache cache;
 
     // Dummy 資料
     private RuncardRawInfo dummyRawInfo;
@@ -46,7 +46,7 @@ class RunCardParserServiceTest {
                 "JDTM11", "SectA",
                 "JDTM20", "SectB"
         );
-        lenient().when(dataLoaderService.getToolIdToSectNameMap())
+        lenient().when(cache.getToolIdToSectNameMap())
                 .thenReturn(sectMap);
 
         OneConditionRecipeAndToolInfo infoNoGroup = OneConditionRecipeAndToolInfo.builder()
@@ -61,7 +61,7 @@ class RunCardParserServiceTest {
                 .toolIdList("JDTM20")
                 .build();
 
-        lenient().when(dataLoaderService.getRecipeAndToolInfo("RC-001"))
+        lenient().when(cache.getRecipeAndToolInfo("RC-001"))
                 .thenReturn(List.of(infoNoGroup, infoWithGroup));
 
         // Condition 1: 無 group mapping

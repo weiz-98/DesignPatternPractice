@@ -1,6 +1,7 @@
 package com.example.demo.rule;
 
 import com.example.demo.po.InhibitionCheckStatus;
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +20,7 @@ import static org.mockito.Mockito.*;
 class RuleInhibitionCheckStatusTest {
 
     @Mock
-    private DataLoaderService dataLoaderService;
+    private BatchCache cache;
 
     @InjectMocks
     private RuleInhibitionCheckStatus ruleInhibitionCheckStatus;
@@ -36,7 +37,7 @@ class RuleInhibitionCheckStatusTest {
     @BeforeEach
     void setUp() {
         MockitoAnnotations.openMocks(this);
-        lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString()))
+        lenient().when(cache.getRecipeAndToolInfo(anyString()))
                 .thenReturn(Collections.emptyList());
     }
 
@@ -53,7 +54,7 @@ class RuleInhibitionCheckStatusTest {
         assertEquals(0, info.getResult());
         assertEquals("lotType is empty => skip check", info.getDetail().get("msg"));
 
-        verify(dataLoaderService, never()).getInhibitionCheckStatus(anyString());
+        verify(cache, never()).getInhibitionCheckStatus(anyString());
     }
 
     @Test
@@ -68,7 +69,7 @@ class RuleInhibitionCheckStatusTest {
 
         assertEquals(0, info.getResult());
         assertEquals("lotType mismatch => skip check", info.getDetail().get("msg"));
-        verify(dataLoaderService, never()).getInhibitionCheckStatus(anyString());
+        verify(cache, never()).getInhibitionCheckStatus(anyString());
     }
 
     @Test
@@ -78,13 +79,13 @@ class RuleInhibitionCheckStatusTest {
         RuncardRawInfo rc = new RuncardRawInfo();
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-999");
-        when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(Collections.emptyList());
+        when(cache.getInhibitionCheckStatus(anyString())).thenReturn(Collections.emptyList());
 
         ResultInfo info = ruleInhibitionCheckStatus.check(ctx("TEST_COND", rc), rule);
 
         assertEquals(3, info.getResult());
         assertEquals("No InhibitionCheckStatus data => skip", info.getDetail().get("error"));
-        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
+        verify(cache, times(1)).getInhibitionCheckStatus(anyString());
     }
 
     @Test
@@ -100,13 +101,13 @@ class RuleInhibitionCheckStatusTest {
                 new InhibitionCheckStatus("01", "Y"),
                 new InhibitionCheckStatus("02", "N")
         );
-        when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
+        when(cache.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
 
         ResultInfo info = ruleInhibitionCheckStatus.check(ctx("01", rc), rule);
 
         assertEquals(1, info.getResult(), "inhibitFlag=Y ⇒ lamp=1");
         assertEquals(true, info.getDetail().get("inhibitionCheck"));
-        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
+        verify(cache, times(1)).getInhibitionCheckStatus(anyString());
     }
 
     @Test
@@ -122,13 +123,13 @@ class RuleInhibitionCheckStatusTest {
                 new InhibitionCheckStatus("01", "Y"),
                 new InhibitionCheckStatus("02", "N")
         );
-        when(dataLoaderService.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
+        when(cache.getInhibitionCheckStatus(anyString())).thenReturn(mockList);
 
         ResultInfo info = ruleInhibitionCheckStatus.check(ctx("02", rc), rule);
 
         assertEquals(2, info.getResult(), "inhibitFlag≠Y ⇒ lamp=2");
         assertEquals(false, info.getDetail().get("inhibitionCheck"));
-        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
+        verify(cache, times(1)).getInhibitionCheckStatus(anyString());
     }
 
     @Test
@@ -139,7 +140,7 @@ class RuleInhibitionCheckStatusTest {
         rc.setRuncardId("RC-001");
         rc.setPartId("TM-123");
 
-        when(dataLoaderService.getInhibitionCheckStatus(anyString()))
+        when(cache.getInhibitionCheckStatus(anyString()))
                 .thenReturn(List.of(new InhibitionCheckStatus("01", "Y")));
 
         ResultInfo info = ruleInhibitionCheckStatus.check(ctx("01_M01", rc), rule);
@@ -147,7 +148,7 @@ class RuleInhibitionCheckStatusTest {
         assertEquals(1, info.getResult());
         assertEquals(Boolean.TRUE, info.getDetail().get("inhibitionCheck"));
 
-        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
+        verify(cache, times(1)).getInhibitionCheckStatus(anyString());
     }
 
     @Test
@@ -161,7 +162,7 @@ class RuleInhibitionCheckStatusTest {
         List<InhibitionCheckStatus> list = List.of(
                 new InhibitionCheckStatus("99", "Y")
         );
-        when(dataLoaderService.getInhibitionCheckStatus(anyString()))
+        when(cache.getInhibitionCheckStatus(anyString()))
                 .thenReturn(list);
 
         ResultInfo info = ruleInhibitionCheckStatus.check(ctx("TEST_COND", rc), rule);
@@ -170,7 +171,7 @@ class RuleInhibitionCheckStatusTest {
         assertEquals("No InhibitionCheckStatus for condition",
                 info.getDetail().get("error"));
 
-        verify(dataLoaderService, times(1)).getInhibitionCheckStatus(anyString());
+        verify(cache, times(1)).getInhibitionCheckStatus(anyString());
     }
 
 

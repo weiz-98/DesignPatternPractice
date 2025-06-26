@@ -1,5 +1,6 @@
 package com.example.demo.utils;
 
+import com.example.demo.service.BatchCache;
 import com.example.demo.service.DataLoaderService;
 import com.example.demo.vo.RecipeToolPair;
 import com.example.demo.vo.ResultInfo;
@@ -164,13 +165,13 @@ public class RuleUtil {
     }
 
     public static String buildConditionSectName(String toolIdsStr,
-                                                DataLoaderService dataLoaderService) {
+                                                BatchCache cache) {
 
         if (toolIdsStr == null || toolIdsStr.isBlank()) {
             return "";
         }
 
-        Map<String, String> sectMap = dataLoaderService.getToolIdToSectNameMap();
+        Map<String, String> sectMap = cache.getToolIdToSectNameMap();
         if (sectMap == null || sectMap.isEmpty()) {
             return "";
         }
@@ -184,11 +185,11 @@ public class RuleUtil {
                 .collect(Collectors.joining(","));
     }
 
-    public static RecipeToolPair findRecipeToolPair(DataLoaderService dataLoaderService,
+    public static RecipeToolPair findRecipeToolPair(BatchCache cache,
                                                     String runcardId,
                                                     String condition) {
 
-        return dataLoaderService.getRecipeAndToolInfo(runcardId)
+        return cache.getRecipeAndToolInfo(runcardId)
                 .stream()
                 .filter(o -> condition.equals(o.getCondition()))
                 .findFirst()

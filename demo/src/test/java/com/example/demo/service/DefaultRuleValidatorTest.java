@@ -38,7 +38,7 @@ class DefaultRuleValidatorTest {
     private RuleCheckFactory ruleCheckFactory;
 
     @Mock
-    private DataLoaderService dataLoaderService;
+    private BatchCache cache;
 
     @InjectMocks
     private DefaultRuleValidator defaultRuleValidator;
@@ -59,9 +59,9 @@ class DefaultRuleValidatorTest {
         dummyRuleB.setRuleType("ruleB");
 
         OneConditionRecipeAndToolInfo pair = OneConditionRecipeAndToolInfo.builder().condition(COND).recipeId("RECIPE-X").toolIdList("TOOL1,TOOL2").build();
-        lenient().when(dataLoaderService.getRecipeAndToolInfo(anyString())).thenReturn(List.of(pair));
+        lenient().when(cache.getRecipeAndToolInfo(anyString())).thenReturn(List.of(pair));
 
-        lenient().when(dataLoaderService.getToolIdToSectNameMap()).thenReturn(Map.of("TOOL1", "SectA", "TOOL2", "SectB"));
+        lenient().when(cache.getToolIdToSectNameMap()).thenReturn(Map.of("TOOL1", "SectA", "TOOL2", "SectB"));
     }
 
     @Test
