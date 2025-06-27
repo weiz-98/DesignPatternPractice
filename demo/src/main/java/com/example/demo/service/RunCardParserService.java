@@ -1,6 +1,7 @@
 package com.example.demo.service;
 
 import com.example.demo.rule.DefaultRuleValidator;
+import com.example.demo.rule.Lamp;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
@@ -127,7 +128,7 @@ public class RunCardParserService {
 
         ResultInfo resultInfo = new ResultInfo();
         resultInfo.setRuleType("no-group");
-        resultInfo.setResult(0);
+        resultInfo.setResult(Lamp.SKIP.code());
         resultInfo.setDetail(detail);
 
         log.info("RuncardID: {} Condition: {} - No group mapping found, recipeId='{}' , conditionSectName='{}'", rc.getRuncardId(), cond, recipeToolPair.getRecipeId(), conditionSectName);

@@ -2,18 +2,20 @@ package com.example.demo.rule;
 
 import com.example.demo.po.InhibitionCheckStatus;
 import com.example.demo.service.BatchCache;
+import com.example.demo.utils.PreCheckUtil;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@Component
+@Component("InhibitionCheckStatus")
 @RequiredArgsConstructor
 public class RuleInhibitionCheckStatus implements IRuleCheck {
 
@@ -26,11 +28,11 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check start", runcardRawInfo.getRuncardId(), cond);
 
-        ResultInfo r;
-        r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
-        r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
+        ResultInfo pre = PreCheckUtil.run(EnumSet.of(PreCheckType.LOT_TYPE_EMPTY, PreCheckType.LOT_TYPE_MISMATCH),
+                cond, runcardRawInfo, rule, recipeToolPair);
+        if (pre != null) {
+            return pre;
+        }
 
         List<InhibitionCheckStatus> list = cache.getInhibitionCheckStatus(runcardRawInfo.getRuncardId());
         if (list.isEmpty()) {
@@ -51,14 +53,14 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
         }
 
         boolean flagY = "Y".equalsIgnoreCase(target.getInhibitFlag());
-        int lamp = flagY ? 1 : 2;
+        Lamp lamp = flagY ? Lamp.GREEN : Lamp.YELLOW;
 
         log.info("RuncardID: {} Condition: {} - InhibitionCheckStatus check => inhibitFlag='{}'", runcardRawInfo.getRuncardId(), cond, target.getInhibitFlag());
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
         detailMap.put("toolIds", recipeToolPair.getToolIds());
-        detailMap.put("result", lamp);
+        detailMap.put("result", lamp.code());
         detailMap.put("inhibitionCheck", flagY);
         detailMap.put("runcardId", runcardRawInfo.getRuncardId());
         detailMap.put("condition", cond);
@@ -69,7 +71,7 @@ public class RuleInhibitionCheckStatus implements IRuleCheck {
 
         return ResultInfo.builder()
                 .ruleType(rule.getRuleType())
-                .result(lamp)
+                .result(lamp.code())
                 .detail(detailMap)
                 .build();
     }

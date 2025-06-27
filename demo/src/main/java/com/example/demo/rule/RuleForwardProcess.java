@@ -2,23 +2,22 @@ package com.example.demo.rule;
 
 import com.example.demo.po.ForwardProcess;
 import com.example.demo.service.BatchCache;
-import com.example.demo.service.DataLoaderService;
+import com.example.demo.utils.PreCheckUtil;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @Slf4j
-@Component
+@Component("ForwardProcess")
 @RequiredArgsConstructor
 public class RuleForwardProcess implements IRuleCheck {
+    private static final Pattern TRIM_PERCENT = Pattern.compile("^%|%$");
 
     @Override
     public ResultInfo check(RuleExecutionContext ruleExecutionContext, Rule rule) {
@@ -28,13 +27,11 @@ public class RuleForwardProcess implements IRuleCheck {
         RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
         log.info("RuncardID: {} Condition: {} - ForwardProcess check start", runcardRawInfo.getRuncardId(), cond);
 
-        ResultInfo r;
-        r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
-        r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
-        r = RuleUtil.skipIfSettingsNull(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
+        ResultInfo pre = PreCheckUtil.run(EnumSet.of(PreCheckType.LOT_TYPE_EMPTY, PreCheckType.LOT_TYPE_MISMATCH, PreCheckType.SETTINGS_NULL),
+                cond, runcardRawInfo, rule, recipeToolPair);
+        if (pre != null) {
+            return pre;
+        }
 
         Map<String, Object> settings = rule.getSettings();
 
@@ -70,14 +67,14 @@ public class RuleForwardProcess implements IRuleCheck {
         boolean passTool = checkToolPatterns(filtered, toolIds);
 
         boolean pass = passRecipe && passTool;
-        int lamp = pass ? 1 : 3;
+        Lamp lamp = pass ? Lamp.GREEN : Lamp.RED;
 
         log.info("RuncardID: {} Condition: {} - ForwardProcess check => passRecipe = '{}', passTool = '{}'", runcardRawInfo.getRuncardId(), cond, passRecipe, passTool);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
         detailMap.put("toolIds", recipeToolPair.getToolIds());
-        detailMap.put("result", lamp);
+        detailMap.put("result", lamp.code());
         detailMap.put("forwardSteps", forwardSteps);
         detailMap.put("includedMeasurement", includeMeasurement);
         detailMap.put("configuredToolIdList", toolIds);
@@ -100,7 +97,7 @@ public class RuleForwardProcess implements IRuleCheck {
 
         return ResultInfo.builder()
                 .ruleType(rule.getRuleType())
-                .result(lamp)
+                .result(lamp.code())
                 .detail(detailMap)
                 .build();
     }
@@ -146,7 +143,7 @@ public class RuleForwardProcess implements IRuleCheck {
         boolean startsWithPercent = p.startsWith("%");
         boolean endsWithPercent = p.endsWith("%");
 
-        String core = p.replaceAll("^%|%$", ""); // 去掉左右各一個 %
+        String core = TRIM_PERCENT.matcher(p).replaceAll("");
 
         if (startsWithPercent && endsWithPercent) {
             // %abc%  → contains

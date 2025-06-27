@@ -44,7 +44,7 @@ public class DefaultRuleValidator implements IRuleValidator {
             } catch (Exception ex) {
                 info = new ResultInfo();
                 info.setRuleType(rule.getRuleType());
-                info.setResult(3);
+                info.setResult(Lamp.RED.code());
                 info.setDetail(new HashMap<>(Map.of("error", ex.getMessage())));
             }
             info.setDetail(Optional.ofNullable(info.getDetail()).orElseGet(HashMap::new));

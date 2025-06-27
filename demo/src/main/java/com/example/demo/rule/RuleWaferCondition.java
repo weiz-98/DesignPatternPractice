@@ -2,17 +2,19 @@ package com.example.demo.rule;
 
 import com.example.demo.po.WaferCondition;
 import com.example.demo.service.BatchCache;
+import com.example.demo.utils.PreCheckUtil;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 
 @Slf4j
-@Component
+@Component("WaferCondition")
 @RequiredArgsConstructor
 public class RuleWaferCondition implements IRuleCheck {
 
@@ -24,11 +26,11 @@ public class RuleWaferCondition implements IRuleCheck {
         RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
         log.info("RuncardID: {} Condition: {} - WaferCondition check start", runcardRawInfo.getRuncardId(), cond);
 
-        ResultInfo r;
-        r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
-        r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
+        ResultInfo pre = PreCheckUtil.run(EnumSet.of(PreCheckType.LOT_TYPE_EMPTY, PreCheckType.LOT_TYPE_MISMATCH),
+                cond, runcardRawInfo, rule, recipeToolPair);
+        if (pre != null) {
+            return pre;
+        }
 
         WaferCondition wc = cache.getWaferCondition(runcardRawInfo.getRuncardId());
         if (wc == null) {
@@ -41,14 +43,14 @@ public class RuleWaferCondition implements IRuleCheck {
         int wfrQty = RuleUtil.parseIntSafe(wc.getWfrQty());
 
         boolean isEqual = (uniqueCount == wfrQty);
-        int lamp = isEqual ? 1 : 3;
+        Lamp lamp = isEqual ? Lamp.GREEN : Lamp.RED;
 
         log.info("RuncardID: {} Condition: {} - WaferCondition check => uniqueCount = '{}', wfrQty = '{}'", runcardRawInfo.getRuncardId(), cond, uniqueCount, wfrQty);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
         detailMap.put("toolIds", recipeToolPair.getToolIds());
-        detailMap.put("result", lamp);
+        detailMap.put("result", lamp.code());
         detailMap.put("waferCondition", isEqual);
         detailMap.put("wfrQty", wfrQty);
         detailMap.put("experimentQty", uniqueCount);
@@ -61,7 +63,7 @@ public class RuleWaferCondition implements IRuleCheck {
 
         return ResultInfo.builder()
                 .ruleType(rule.getRuleType())
-                .result(lamp)
+                .result(lamp.code())
                 .detail(detailMap)
                 .build();
     }

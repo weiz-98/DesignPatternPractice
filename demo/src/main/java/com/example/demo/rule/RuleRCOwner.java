@@ -2,19 +2,17 @@ package com.example.demo.rule;
 
 import com.example.demo.po.IssuingEngineerInfo;
 import com.example.demo.service.BatchCache;
+import com.example.demo.utils.PreCheckUtil;
 import com.example.demo.utils.RuleUtil;
 import com.example.demo.vo.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 
 @Slf4j
-@Component
+@Component("RCOwner")
 @RequiredArgsConstructor
 public class RuleRCOwner implements IRuleCheck {
 
@@ -27,13 +25,11 @@ public class RuleRCOwner implements IRuleCheck {
         RecipeToolPair recipeToolPair = ruleExecutionContext.getRecipeToolPair();
         log.info("RuncardID: {} Condition: {} - RCOwner check start", runcardRawInfo.getRuncardId(), cond);
 
-        ResultInfo r;
-        r = RuleUtil.skipIfLotTypeEmpty(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
-        r = RuleUtil.skipIfLotTypeMismatch(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
-        r = RuleUtil.skipIfSettingsNull(cond, runcardRawInfo, rule, recipeToolPair);
-        if (r != null) return r;
+        ResultInfo pre = PreCheckUtil.run(EnumSet.of(PreCheckType.LOT_TYPE_EMPTY, PreCheckType.LOT_TYPE_MISMATCH, PreCheckType.SETTINGS_NULL),
+                cond, runcardRawInfo, rule, recipeToolPair);
+        if (pre != null) {
+            return pre;
+        }
 
         Map<String, Object> settings = rule.getSettings();
 
@@ -74,14 +70,14 @@ public class RuleRCOwner implements IRuleCheck {
         boolean employeeMatch = employees.contains(matchedEngineer.getEngineerId());
 
         boolean found = divisionMatch || departmentMatch || sectionMatch || employeeMatch;
-        int lamp = found ? 2 : 1;
+        Lamp lamp = found ? Lamp.YELLOW : Lamp.GREEN;
 
         log.info("RuncardID: {} Condition: {} - RCOwner check => divisionMatch = '{}', departmentMatch = '{}', sectionMatch = '{}', employeeMatch = '{}',", runcardRawInfo.getRuncardId(), cond, divisionMatch, departmentMatch, sectionMatch, employeeMatch);
 
         Map<String, Object> detailMap = new HashMap<>();
         detailMap.put("recipeId", recipeToolPair.getRecipeId());
         detailMap.put("toolIds", recipeToolPair.getToolIds());
-        detailMap.put("result", lamp);
+        detailMap.put("result", lamp.code());
         detailMap.put("issuingEngineer", runcardRawInfo.getIssuingEngineer());
         detailMap.put("configuredDivisionsIds", divisions);
         detailMap.put("configuredDepartmentIds", departments);
@@ -96,7 +92,7 @@ public class RuleRCOwner implements IRuleCheck {
 
         return ResultInfo.builder()
                 .ruleType(rule.getRuleType())
-                .result(lamp)
+                .result(lamp.code())
                 .detail(detailMap)
                 .build();
     }

@@ -3,12 +3,17 @@ package com.example.demo.service;
 import com.example.demo.rule.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.MockitoAnnotations.openMocks;
 
+@ExtendWith(MockitoExtension.class)
 class RuleCheckFactoryTest {
 
     @Mock
@@ -31,10 +36,13 @@ class RuleCheckFactoryTest {
 
     @BeforeEach
     void setUp() {
-        // 1. 初始化 Mockito 注入
-        openMocks(this);
-        // 2. 呼叫 factory.init()，將注入的 Bean 放進 ruleCheckMap 裡
-        factory.init();
+        Map<String, IRuleCheck> map = new HashMap<>();
+        map.put("ForwardProcess", ruleForwardProcess);
+        map.put("InhibitionCheckStatus", ruleInhibitionCheckStatus);
+        map.put("WaferCondition", ruleWaferCondition);
+        map.put("RCOwner", ruleRCOwner);
+        map.put("RecipeGroupCheckBlue", ruleRecipeGroupCheckBlue);
+        factory = new RuleCheckFactory(map);
     }
 
     @Test
@@ -56,6 +64,6 @@ class RuleCheckFactoryTest {
         Exception exception = assertThrows(IllegalArgumentException.class, () -> {
             factory.getRuleCheck("invalidRule");
         });
-        assertEquals("No RuleCheck found for ruleType: invalidRule", exception.getMessage());
+        assertEquals("Unsupported ruleType: invalidRule", exception.getMessage());
     }
 }
