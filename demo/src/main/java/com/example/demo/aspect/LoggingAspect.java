@@ -61,15 +61,26 @@ public class LoggingAspect {
     @Around("daoLayer()")
     public Object logDao(ProceedingJoinPoint pjp) throws Throwable {
         long start = System.nanoTime();
-        Object result = proceedAndLog(pjp, "DAO");
-        long costMs = (System.nanoTime() - start) / 1_000_000;
-        log.info("[DAO ] {}.{}() cost={} ms", simpleClass(pjp), methodName(pjp), costMs);
-        return result;
+        try {
+            return proceedAndLog(pjp, "DAO");
+        } finally {
+            long costMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("[DAO COST] {}.{}() cost={} ms",
+                    simpleClass(pjp), methodName(pjp), costMs);
+        }
     }
+
 
     @Around("serviceLayer()")
     public Object logService(ProceedingJoinPoint pjp) throws Throwable {
-        return proceedAndLog(pjp, "SRV");
+        long start = System.nanoTime();
+        try {
+            return proceedAndLog(pjp, "SRV");
+        } finally {
+            long costMs = (System.nanoTime() - start) / 1_000_000;
+            log.info("[SRV COST] {}.{}() cost={} ms",
+                    simpleClass(pjp), methodName(pjp), costMs);
+        }
     }
 
     @Around("controllerLayer()")
@@ -85,12 +96,15 @@ public class LoggingAspect {
         String argsJson = safeJson(filterArgs(pjp.getArgs()));
         log.info("[{} IN ] {}.{} args={}", tier, cls, mtd, argsJson);
 
-        Object result = pjp.proceed();
-
-        String resJson = safeJson(result);
-        log.info("[{} OUT] {}.{} result={}", tier, cls, mtd, resJson);
-
-        return result;
+        try {
+            Object result = pjp.proceed();
+            log.info("[{} OUT] {}.{} result={}", tier, cls, mtd, safeJson(result));
+            return result;
+        } catch (Throwable ex) {
+            log.error("[{} ERR] {}.{} threw {} args={} msg={}",
+                    tier, cls, mtd, ex.getClass().getSimpleName(), argsJson, ex.getMessage(), ex);
+            throw ex;
+        }
     }
 
     /* ---------- Utils ---------- */
